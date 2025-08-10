@@ -18,4 +18,4 @@ target_include_directories(
   notcurses/include
 )
 
-target_link_libraries(dogan notcurses)
+target_link_libraries(dogan notcurses-core)
