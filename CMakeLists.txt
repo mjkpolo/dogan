@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.21.0)
-project(Dogan C)
+project(Dogan)
 
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 # notcurses options
 set(USE_MULTIMEDIA none)
@@ -11,11 +13,14 @@ set(USE_PANDOC off)
 
 add_subdirectory(notcurses)
 
-add_executable(dogan src/main.c)
-
-target_include_directories(
-  dogan PRIVATE
-  notcurses/include
+add_executable(dogan src/main.cpp)
+target_include_directories(dogan
+  PRIVATE
+    notcurses/include
 )
 
-target_link_libraries(dogan notcurses-core)
+target_link_libraries(dogan
+  PRIVATE
+    notcurses++
+)
+
