@@ -47,9 +47,10 @@ public:
     nc_.render();
     int tmpx = x / 2;
     int tmpy = y / 2;
-    DrawTile(0x00b040, tmpx-12, tmpy);
-    DrawTile(0xb04000, tmpx-12+6, tmpy+2);
-    DrawTile(0x0400b0, tmpx-12+6, tmpy-2);
+    DrawTile(0x00b040, tmpx, tmpy);
+    DrawTile(0xb04000, tmpx+6, tmpy+2);
+    DrawTile(0x0400b0, tmpx+6, tmpy-2);
+    tmpx -= 12;
     DrawTile(0x00b040, tmpx, tmpy);
     DrawTile(0xb04000, tmpx+6, tmpy+2);
     DrawTile(0x0400b0, tmpx+6, tmpy-2);
