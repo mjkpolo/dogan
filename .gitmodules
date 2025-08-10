@@ -1,0 +1,3 @@
+[submodule "notcurses"]
+	path = notcurses
+	url = git@github.com:dankamongmen/notcurses.git
