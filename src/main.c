@@ -23,7 +23,6 @@ int main() {
 
   nccell ul = {}, ll = {}, lr = {}, ur = {}, hl = {}, vl = {};
   nccells_rounded_box(n, 0, 0, &ul, &ur, &ll, &lr, &hl, &vl);
-  nccells_rounded_box(n, 0, 0, &ul, &ur, &ll, &lr, &hl, &vl);
 
   ncplane_box(n, &ul, &ur, &ll, &lr, &hl, &vl, dimy - 1, dimx - 1, 0);
   const char *title = "Dogan";
