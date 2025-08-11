@@ -31,3 +31,6 @@ To see the logs redirect to a debug file:
 ./build/dogan 2> debug.log
 ```
 
+## TODO
+
+For todos check [TODO](TODO)
