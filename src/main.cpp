@@ -19,6 +19,11 @@ const std::unordered_map<tile_type, int> tile_count = {
     {BRICK, 3}, {WOOD, 4}, {SHEEP, 4}, {WHEAT, 4}, {STONE, 3}, {DESERT, 1},
 };
 
+const std::unordered_map<int, int> number_count = {
+    {12, 1}, {11, 2}, {10, 2}, {9, 2}, {8, 2},
+    {6, 2},  {5, 2},  {4, 2},  {3, 2}, {2, 1},
+};
+
 const std::unordered_map<tile_type, const char *> tile_name = {
     {BRICK, "BR"}, {WOOD, "WO"},  {SHEEP, "SH"},
     {WHEAT, "WH"}, {STONE, "ST"}, {DESERT, "DE"},
@@ -81,6 +86,18 @@ public:
       }
     }
 
+    std::vector<int> random_numbers;
+    for (const auto &[num, count] : number_count) {
+      for (int i = 0; i < count; ++i) {
+        random_numbers.push_back(num);
+      }
+    }
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(random_tiles.begin(), random_tiles.end(), g);
+    std::shuffle(random_numbers.begin(), random_numbers.end(), g);
+
     const std::vector<std::pair<int, int>> positions = {
         {tmpx, tmpy},
         {tmpx + 6, tmpy + 2},
@@ -106,29 +123,22 @@ public:
 
     };
 
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(random_tiles.begin(), random_tiles.end(), g);
-
+    int saw_desert = 0;
     for (int i = 0; i < positions.size(); i++) {
       DrawTile(tile_rgb.at(random_tiles[i]), positions[i].first,
-               positions[i].second, tile_name.at(random_tiles[i]));
+               positions[i].second, tile_name.at(random_tiles[i]),
+               random_numbers[i - saw_desert]);
+      if (random_tiles[i] == DESERT) {
+        saw_desert = 1;
+      }
     }
-
-    // DrawTile(0x00b040, tmpx, tmpy);
-    // DrawTile(0xb04000, tmpx + 6, tmpy + 2);
-    // DrawTile(0x0400b0, tmpx + 6, tmpy - 2);
-    // tmpx -= 12;
-    // DrawTile(0x00b040, tmpx, tmpy);
-    // DrawTile(0xb04000, tmpx + 6, tmpy + 2);
-    // DrawTile(0x0400b0, tmpx + 6, tmpy - 2);
   }
 
-  void DrawTile(unsigned int rgb, int x, int y, const char *name) {
+  void DrawTile(unsigned int rgb, int x, int y, const char *name, int num) {
     const size_t cols = 7;
     const size_t rows = 4;
     char number[3];
-    snprintf(number, 3, "9");
+    snprintf(number, 3, "%d", num);
     char texture[] = " wtttn "
                      "w*****n"
                      "s*****e"
