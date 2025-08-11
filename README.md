@@ -33,4 +33,4 @@ To see the logs redirect to a debug file:
 
 ## TODO
 
-For todos check [TODO](TODO)
+For todos check [TODO](TODO.md)
