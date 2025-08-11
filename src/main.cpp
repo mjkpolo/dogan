@@ -108,14 +108,14 @@ public:
         {tmpx, tmpy},
     };
 
-    int saw_desert = 0;
     for (int i = 0; i < positions.size(); i++) {
-      DrawTile(tile_rgb.at(random_tiles[i]), positions[i].first,
-               positions[i].second, tile_name.at(random_tiles[i]),
-               random_numbers[i - saw_desert]);
-      if (random_tiles[i] == DESERT) {
-        saw_desert = 1;
+      tile_type tt = random_tiles[i];
+      int num = random_numbers.back();
+      if (tt != DESERT) {
+        random_numbers.pop_back();
       }
+      DrawTile(tile_rgb.at(tt), positions[i].first, positions[i].second,
+               tile_name.at(tt), num);
     }
   }
 
