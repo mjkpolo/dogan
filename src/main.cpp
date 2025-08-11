@@ -1,7 +1,8 @@
-#include <cstdlib>
+#include "notcurses/notcurses.h"
 #define NCPP_EXCEPTIONS_PLEASE
 #include <algorithm>
 #include <assert.h>
+#include <cassert>
 #include <locale.h>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
@@ -25,8 +26,8 @@ const std::unordered_map<int, int> number_count = {
 };
 
 const std::unordered_map<tile_type, const char *> tile_name = {
-    {BRICK, "BR"}, {WOOD, "WO"},  {SHEEP, "SH"},
-    {WHEAT, "WH"}, {STONE, "ST"}, {DESERT, "DE"},
+    {BRICK, "Brick"}, {WOOD, "Wood"},   {SHEEP, "Sheep"},
+    {WHEAT, "Wheat"}, {STONE, "Stone"}, {DESERT, "Desert"},
 };
 
 const int total_tiles = tile_count.at(BRICK) + tile_count.at(WOOD) +
@@ -64,8 +65,9 @@ public:
     unsigned y, x;
     stdplane_->get_dim(&y, &x);
     board_top_y_ = y - (BOARD_HEIGHT + 2);
-    board_ = std::make_unique<ncpp::Plane>(
-        BOARD_HEIGHT, BOARD_WIDTH * 2, board_top_y_, x / 2 - (BOARD_WIDTH + 1));
+    board_left_x_ = x / 2 - (BOARD_WIDTH + 1);
+    board_ = std::make_unique<ncpp::Plane>(BOARD_HEIGHT, BOARD_WIDTH * 2,
+                                           board_top_y_, board_left_x_);
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
@@ -74,7 +76,6 @@ public:
     ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
     board_->set_base("", 0, channels);
     board_->printf(0, BOARD_WIDTH - strlen("DOGAN") / 2, "DOGAN");
-    nc_.render();
     int tmpx = x / 2 - 3;
     int tmpy = y / 2 - 2;
 
@@ -88,7 +89,7 @@ public:
 
     std::vector<int> random_numbers;
     for (const auto &[num, count] : number_count) {
-      for (int i = 0; i < count; ++i) {
+      for (int i = 0; i < count; i++) {
         random_numbers.push_back(num);
       }
     }
@@ -108,15 +109,53 @@ public:
         {tmpx, tmpy},
     };
 
+    assert(positions.size() == random_tiles.size());
+    assert(positions.size() != random_numbers.size() - 1);
     for (int i = 0; i < positions.size(); i++) {
       tile_type tt = random_tiles[i];
-      int num = random_numbers.back();
+      int num = -1;
       if (tt != DESERT) {
+        assert(!random_numbers.empty());
+        num = random_numbers.back();
         random_numbers.pop_back();
       }
       DrawTile(tile_rgb.at(tt), positions[i].first, positions[i].second,
                tile_name.at(tt), num);
     }
+
+    DrawLegend();
+
+    nc_.render();
+  }
+
+  void DrawLegend() {
+    static constexpr auto LEGEND_WIDTH = 12;
+    static constexpr auto LEGEND_HEIGHT = 8;
+    legend_ = std::make_unique<ncpp::Plane>(
+        LEGEND_HEIGHT, LEGEND_WIDTH, board_top_y_ + 2, board_left_x_ + 2);
+    uint64_t channels = 0;
+    ncchannels_set_fg_rgb(&channels, 0x00b040);
+    ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
+    legend_->double_box(0, channels, LEGEND_HEIGHT - 1, LEGEND_WIDTH - 1,
+                       0);
+    ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
+    legend_->set_bg_alpha(NCALPHA_TRANSPARENT);
+    legend_->set_fg_alpha(NCALPHA_TRANSPARENT);
+    int yoff = 0;
+    legend_->putstr(yoff, 1, "Legend:");
+    yoff += 1;
+    for (const auto &[tile, rgb] : tile_rgb) {
+      legend_->set_fg_alpha(NCALPHA_OPAQUE);
+      legend_->set_fg_rgb(rgb);
+      int xoff = 1;
+      legend_->putstr(yoff, xoff, "██");
+      xoff += 4;
+      legend_->set_fg_alpha(NCALPHA_TRANSPARENT);
+      legend_->putstr(yoff, xoff, tile_name.at(tile));
+      yoff += 1;
+    }
+    legend_->set_bg_alpha(NCALPHA_TRANSPARENT);
+    legend_->set_base("", 0, channels);
   }
 
   void DrawTile(unsigned int rgb, int x, int y, const char *name, int num) {
@@ -154,7 +193,7 @@ public:
 
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < cols; j++) {
-        if (i == rows / 2 - 1 && j >= cols / 2 &&
+        if (num != -1 && i == rows / 2 - 1 && j >= cols / 2 &&
             j < cols / 2 + strlen(number)) {
           tile->putc(i, j, number[j - cols / 2]);
         } else {
@@ -186,7 +225,6 @@ public:
         }
       }
     }
-    nc_.render();
     tiles_.push_back(std::move(tile));
   }
 
@@ -195,11 +233,13 @@ private:
   uint64_t score_;
   std::mutex mtx_; // guards msdelay_
   std::unique_ptr<ncpp::Plane> board_;
+  std::unique_ptr<ncpp::Plane> legend_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
   std::chrono::milliseconds msdelay_;
   int board_top_y_;
+  int board_left_x_;
 };
 
 bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
