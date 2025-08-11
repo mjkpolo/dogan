@@ -99,28 +99,13 @@ public:
     std::shuffle(random_numbers.begin(), random_numbers.end(), g);
 
     const std::vector<std::pair<int, int>> positions = {
+        {tmpx - 12, tmpy - 4}, {tmpx - 12, tmpy + 4}, {tmpx - 12, tmpy},
+        {tmpx - 6, tmpy - 2},  {tmpx - 6, tmpy - 6},  {tmpx - 6, tmpy + 2},
+        {tmpx - 6, tmpy + 6},  {tmpx + 12, tmpy - 4}, {tmpx + 12, tmpy + 4},
+        {tmpx + 12, tmpy},     {tmpx + 6, tmpy - 2},  {tmpx + 6, tmpy - 6},
+        {tmpx + 6, tmpy + 2},  {tmpx + 6, tmpy + 6},  {tmpx, tmpy - 4},
+        {tmpx, tmpy - 8},      {tmpx, tmpy + 4},      {tmpx, tmpy + 8},
         {tmpx, tmpy},
-        {tmpx + 6, tmpy + 2},
-        {tmpx + 6, tmpy - 2},
-        {tmpx, tmpy - 4},
-        {tmpx, tmpy + 4},
-        {tmpx - 6, tmpy + 2},
-        {tmpx - 6, tmpy - 2},
-        {tmpx + 6 + 6, tmpy + 2 + 2},
-
-        {tmpx + 6 + 6, tmpy + 2 - 2},
-        {tmpx + 6, tmpy + 4 + 4 - 2},
-        {tmpx, tmpy + 4 + 4 + 2 - 2},
-        {tmpx - 6, tmpy + 4 + 4 - 2},
-        {tmpx - 6 - 6, tmpy + 2 - 2},
-        {tmpx - 6 - 6, tmpy + 2 + 2},
-
-        {tmpx + 6 + 6, tmpy - 2 - 2},
-        {tmpx + 6, tmpy - 4 - 4 + 2},
-        {tmpx, tmpy - 4 - 4 - 2 + 2},
-        {tmpx - 6, tmpy - 4 - 4 + 2},
-        {tmpx - 6 - 6, tmpy - 2 - 2},
-
     };
 
     int saw_desert = 0;
@@ -137,14 +122,25 @@ public:
   void DrawTile(unsigned int rgb, int x, int y, const char *name, int num) {
     const size_t cols = 7;
     const size_t rows = 4;
-    char number[3];
-    snprintf(number, 3, "%d", num);
-    char texture[] = " wtttn "
-                     "w*****n"
-                     "s*****e"
-                     " sbbbe ";
-    strncpy(texture + 10, number, strlen(number));
-    // strncpy(texture + 17, name, 2);
+
+    typedef enum {
+      MID,
+      TOP,
+      BOT,
+      U_L,
+      U_R,
+      L_L,
+      L_R,
+      EMP,
+    } tile_texture;
+
+    const tile_texture texture[rows][cols] = {
+        {EMP, U_L, TOP, TOP, TOP, U_R, EMP},
+        {U_L, MID, MID, MID, MID, MID, U_R},
+        {L_L, MID, MID, MID, MID, MID, L_R},
+        {EMP, L_L, BOT, BOT, BOT, L_R, EMP},
+    };
+
     auto tile = std::make_unique<ncpp::Plane>(rows, cols, y, x, nullptr);
     uint64_t channels = 0;
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
@@ -152,27 +148,43 @@ public:
     tile->set_fg_rgb(rgb);
     tile->set_bg_alpha(NCALPHA_TRANSPARENT);
     tile->set_base("", 0, channels);
-    y = 0;
-    x = 0;
-    for (size_t i = 0; i < strlen(texture); i++) {
-      if (texture[i] == '*') {
-        tile->putstr(y, x, "█");
-      } else if (texture[i] == 'w') {
-        tile->putstr(y, x, "🬵");
-      } else if (texture[i] == 'n') {
-        tile->putstr(y, x, "🬱");
-      } else if (texture[i] == 's') {
-        tile->putstr(y, x, "🬊");
-      } else if (texture[i] == 'e') {
-        tile->putstr(y, x, "🬆");
-      } else if (texture[i] == 't') {
-        tile->putstr(y, x, "🬹");
-      } else if (texture[i] == 'b') {
-        tile->putstr(y, x, "🬎");
-      } else if (texture[i] != ' ') {
-        tile->putc(y, x, texture[i]);
+
+    char number[3];
+    snprintf(number, 3, "%d", num);
+
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        if (i == rows / 2 - 1 && j >= cols / 2 &&
+            j < cols / 2 + strlen(number)) {
+          tile->putc(i, j, number[j - cols / 2]);
+        } else {
+          switch (texture[i][j]) {
+          case MID:
+            tile->putstr(i, j, "█");
+            break;
+          case U_L:
+            tile->putstr(i, j, "🬵");
+            break;
+          case U_R:
+            tile->putstr(i, j, "🬱");
+            break;
+          case L_L:
+            tile->putstr(i, j, "🬊");
+            break;
+          case L_R:
+            tile->putstr(i, j, "🬆");
+            break;
+          case TOP:
+            tile->putstr(i, j, "🬹");
+            break;
+          case BOT:
+            tile->putstr(i, j, "🬎");
+            break;
+          default:
+            break;
+          }
+        }
       }
-      y += ((x = ((x + 1) % cols)) == 0);
     }
     nc_.render();
     tiles_.push_back(std::move(tile));

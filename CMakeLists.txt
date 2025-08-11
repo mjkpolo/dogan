@@ -10,6 +10,13 @@ set(USE_MULTIMEDIA none)
 set(USE_DEFLATE off)
 set(USE_DOCTEST off)
 set(USE_PANDOC off)
+set(USE_ASAN on)
+
+if(${USE_ASAN})
+  add_compile_options(-fsanitize=address)
+  add_link_options(-fsanitize=address)
+  add_compile_options(-Wformat -Werror=format-security)
+endif()
 
 add_subdirectory(notcurses)
 
