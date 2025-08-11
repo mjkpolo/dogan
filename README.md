@@ -1,4 +1,4 @@
-# Dogan
+# Dogan - TUI Catan clone built with notcurses
 
 It's like Catan but Dog...
 
