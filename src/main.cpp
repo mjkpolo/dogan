@@ -1,18 +1,43 @@
+#include <cstdlib>
 #define NCPP_EXCEPTIONS_PLEASE
+#include <algorithm>
+#include <assert.h>
 #include <locale.h>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
+#include <random>
 #include <stdio.h>
 #include <thread>
 #include <unistd.h>
+#include <unordered_map>
 
 static std::mutex ncmtx;
+
+typedef enum { BRICK, WOOD, SHEEP, WHEAT, STONE, DESERT } tile_type;
+
+const std::unordered_map<tile_type, int> tile_count = {
+    {BRICK, 3}, {WOOD, 4}, {SHEEP, 4}, {WHEAT, 4}, {STONE, 3}, {DESERT, 1},
+};
+
+const std::unordered_map<tile_type, const char *> tile_name = {
+    {BRICK, "BR"}, {WOOD, "WO"},  {SHEEP, "SH"},
+    {WHEAT, "WH"}, {STONE, "ST"}, {DESERT, "DE"},
+};
+
+const int total_tiles = tile_count.at(BRICK) + tile_count.at(WOOD) +
+                        tile_count.at(SHEEP) + tile_count.at(WHEAT) +
+                        tile_count.at(STONE) + tile_count.at(DESERT);
+
+const std::unordered_map<tile_type, unsigned int> tile_rgb = {
+    {BRICK, 0xfc9003}, {WOOD, 0x026317},  {SHEEP, 0x72f78f},
+    {WHEAT, 0xe6f23d}, {STONE, 0x737373}, {DESERT, 0xcfcc95},
+};
 
 class Dogan {
 public:
   Dogan(ncpp::NotCurses &nc, std::atomic_bool &gameover)
       : nc_(nc), stdplane_(nc_.get_stdplane()), gameover_(gameover),
-        msdelay_(1000) {
+        msdelay_(500) {
     DrawBoard();
   }
 
@@ -45,24 +70,71 @@ public:
     board_->set_base("", 0, channels);
     board_->printf(0, BOARD_WIDTH - strlen("DOGAN") / 2, "DOGAN");
     nc_.render();
-    int tmpx = x / 2;
-    int tmpy = y / 2;
-    DrawTile(0x00b040, tmpx, tmpy);
-    DrawTile(0xb04000, tmpx+6, tmpy+2);
-    DrawTile(0x0400b0, tmpx+6, tmpy-2);
-    tmpx -= 12;
-    DrawTile(0x00b040, tmpx, tmpy);
-    DrawTile(0xb04000, tmpx+6, tmpy+2);
-    DrawTile(0x0400b0, tmpx+6, tmpy-2);
+    int tmpx = x / 2 - 3;
+    int tmpy = y / 2 - 2;
+
+    std::vector<tile_type> random_tiles;
+
+    for (const auto &[tile, count] : tile_count) {
+      for (int i = 0; i < count; ++i) {
+        random_tiles.push_back(tile);
+      }
+    }
+
+    const std::vector<std::pair<int, int>> positions = {
+        {tmpx, tmpy},
+        {tmpx + 6, tmpy + 2},
+        {tmpx + 6, tmpy - 2},
+        {tmpx, tmpy - 4},
+        {tmpx, tmpy + 4},
+        {tmpx - 6, tmpy + 2},
+        {tmpx - 6, tmpy - 2},
+        {tmpx + 6 + 6, tmpy + 2 + 2},
+
+        {tmpx + 6 + 6, tmpy + 2 - 2},
+        {tmpx + 6, tmpy + 4 + 4 - 2},
+        {tmpx, tmpy + 4 + 4 + 2 - 2},
+        {tmpx - 6, tmpy + 4 + 4 - 2},
+        {tmpx - 6 - 6, tmpy + 2 - 2},
+        {tmpx - 6 - 6, tmpy + 2 + 2},
+
+        {tmpx + 6 + 6, tmpy - 2 - 2},
+        {tmpx + 6, tmpy - 4 - 4 + 2},
+        {tmpx, tmpy - 4 - 4 - 2 + 2},
+        {tmpx - 6, tmpy - 4 - 4 + 2},
+        {tmpx - 6 - 6, tmpy - 2 - 2},
+
+    };
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(random_tiles.begin(), random_tiles.end(), g);
+
+    for (int i = 0; i < positions.size(); i++) {
+      DrawTile(tile_rgb.at(random_tiles[i]), positions[i].first,
+               positions[i].second, tile_name.at(random_tiles[i]));
+    }
+
+    // DrawTile(0x00b040, tmpx, tmpy);
+    // DrawTile(0xb04000, tmpx + 6, tmpy + 2);
+    // DrawTile(0x0400b0, tmpx + 6, tmpy - 2);
+    // tmpx -= 12;
+    // DrawTile(0x00b040, tmpx, tmpy);
+    // DrawTile(0xb04000, tmpx + 6, tmpy + 2);
+    // DrawTile(0x0400b0, tmpx + 6, tmpy - 2);
   }
 
-  void DrawTile(unsigned int rgb, int x, int y) {
+  void DrawTile(unsigned int rgb, int x, int y, const char *name) {
     const size_t cols = 7;
     const size_t rows = 4;
-    const char *texture = " a***b "
-                          "a**9**b"
-                          "c*****d"
-                          " c***d ";
+    char number[3];
+    snprintf(number, 3, "9");
+    char texture[] = " wtttn "
+                     "w*****n"
+                     "s*****e"
+                     " sbbbe ";
+    strncpy(texture + 10, number, strlen(number));
+    // strncpy(texture + 17, name, 2);
     auto tile = std::make_unique<ncpp::Plane>(rows, cols, y, x, nullptr);
     uint64_t channels = 0;
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
@@ -75,14 +147,18 @@ public:
     for (size_t i = 0; i < strlen(texture); i++) {
       if (texture[i] == '*') {
         tile->putstr(y, x, "█");
-      } else if (texture[i] == 'a') {
-        tile->putstr(y, x, "▟");
+      } else if (texture[i] == 'w') {
+        tile->putstr(y, x, "🬵");
+      } else if (texture[i] == 'n') {
+        tile->putstr(y, x, "🬱");
+      } else if (texture[i] == 's') {
+        tile->putstr(y, x, "🬊");
+      } else if (texture[i] == 'e') {
+        tile->putstr(y, x, "🬆");
+      } else if (texture[i] == 't') {
+        tile->putstr(y, x, "🬹");
       } else if (texture[i] == 'b') {
-        tile->putstr(y, x, "▙");
-      } else if (texture[i] == 'c') {
-        tile->putstr(y, x, "▜");
-      } else if (texture[i] == 'd') {
-        tile->putstr(y, x, "▛");
+        tile->putstr(y, x, "🬎");
       } else if (texture[i] != ' ') {
         tile->putc(y, x, texture[i]);
       }
