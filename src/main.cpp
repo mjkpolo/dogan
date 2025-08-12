@@ -1,4 +1,6 @@
+#include "notcurses/notcurses.h"
 #define NCPP_EXCEPTIONS_PLEASE
+#include <Sprite.hh>
 #include <algorithm>
 #include <array>
 #include <assert.h>
@@ -125,32 +127,42 @@ public:
     }
 
     DrawLegend();
-    DrawSettlement(20, 50);
+    DrawSettlement(20, 90);
 
     nc_.render();
   }
 
   void DrawSettlement(int y, int x) {
     static constexpr int SETTLE_WIDTH = 4;
-    static constexpr int SETTLE_HEIGHT = 2;
-    std::unique_ptr<ncpp::Visual> ncv;
-    {
-      std::array<uint32_t, SETTLE_WIDTH *SETTLE_HEIGHT * 4> rgba = {
-          0x00ffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-          0xffffffff, 0xffffffff, 0xffffffff, 0x00ffffff,
-      };
-      ncv = std::make_unique<ncpp::Visual>(rgba.data(), SETTLE_HEIGHT,
-                                           SETTLE_WIDTH * 4, SETTLE_WIDTH);
-    }
+    static constexpr int SETTLE_HEIGHT = 4;
+    assert(SETTLE_WIDTH == blue_settlement.cols_);
+    assert(SETTLE_HEIGHT == blue_settlement.rows_);
+    std::unique_ptr<ncpp::Visual> blue_ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)blue_settlement.pixels, SETTLE_HEIGHT,
+        SETTLE_WIDTH * 4, SETTLE_WIDTH);
+
+    std::unique_ptr<ncpp::Visual> red_ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)orange_settlement.pixels, SETTLE_HEIGHT,
+        SETTLE_WIDTH * 4, SETTLE_WIDTH);
+
     ncvisual_options vopts = {};
     vopts.leny = SETTLE_HEIGHT;
     vopts.lenx = SETTLE_WIDTH;
-    vopts.blitter = NCBLIT_2x2;
-    vopts.flags = 0;
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE;
     auto settle =
-        std::make_unique<ncpp::Plane>(SETTLE_HEIGHT / 2, SETTLE_WIDTH, y, x);
+        std::make_unique<ncpp::Plane>(2, SETTLE_WIDTH, y, x);
     vopts.n = settle->to_ncplane();
-    ncv->blit(&vopts);
+
+    // vopts.pxoffy = 1;
+    red_ncv->blit(&vopts);
+    vopts.flags |= NCVISUAL_OPTION_CHILDPLANE;
+    blue_ncv->blit(&vopts);
+
+    // settle->set_bg_alpha(NCALPHA_TRANSPARENT);
+    // uint64_t channels = 0;
+    // ncchannels_set_bg_alpha(&channels, NCALPHA_BLEND);
+    // legend_->set_base("", 0, channels);
     settles_.push_back(std::move(settle));
   }
 
@@ -301,6 +313,7 @@ int main() {
   std::atomic_bool gameover = false;
   notcurses_options ncopts{};
   ncopts.flags = NCOPTION_INHIBIT_SETLOCALE;
+  ncopts.loglevel = NCLOGLEVEL_WARNING;
   ncpp::NotCurses nc(ncopts);
   {
     Dogan d{nc, gameover};

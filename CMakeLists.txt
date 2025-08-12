@@ -22,6 +22,7 @@ add_subdirectory(notcurses)
 add_executable(dogan src/main.cpp)
 target_include_directories(dogan
   PRIVATE
+    include
     notcurses/include
 )
 
