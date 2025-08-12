@@ -24,13 +24,9 @@ Run the build script:
 
 ## Debug
 
-Address sanitizer is on by default.
+add -DUSE_ASAN=on to [b](./b)
 To see the logs redirect to a debug file:
 
 ```bash
 ./build/dogan 2> debug.log
 ```
-
-## TODO
-
-For todos check [TODO](TODO.md)

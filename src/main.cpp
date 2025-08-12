@@ -1,10 +1,8 @@
-#include "ncpp/Plane.hh"
-#include "notcurses/notcurses.h"
-#include <cstdlib>
-#include <memory>
 #define NCPP_EXCEPTIONS_PLEASE
 #include <algorithm>
+#include <array>
 #include <assert.h>
+#include <atomic>
 #include <cassert>
 #include <locale.h>
 #include <ncpp/NotCurses.hh>
@@ -137,7 +135,7 @@ public:
     static constexpr int SETTLE_HEIGHT = 2;
     std::unique_ptr<ncpp::Visual> ncv;
     {
-      std::array<uint32_t, SETTLE_WIDTH * SETTLE_HEIGHT * 4> rgba = {
+      std::array<uint32_t, SETTLE_WIDTH *SETTLE_HEIGHT * 4> rgba = {
           0x00ffffff, 0xffffffff, 0xffffffff, 0xffffffff,
           0xffffffff, 0xffffffff, 0xffffffff, 0x00ffffff,
       };
@@ -150,7 +148,7 @@ public:
     vopts.blitter = NCBLIT_2x2;
     vopts.flags = 0;
     auto settle =
-        std::make_unique<ncpp::Plane>(SETTLE_HEIGHT/2, SETTLE_WIDTH, y, x);
+        std::make_unique<ncpp::Plane>(SETTLE_HEIGHT / 2, SETTLE_WIDTH, y, x);
     vopts.n = settle->to_ncplane();
     ncv->blit(&vopts);
     settles_.push_back(std::move(settle));
