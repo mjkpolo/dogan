@@ -1,4 +1,7 @@
+#include "ncpp/Plane.hh"
 #include "notcurses/notcurses.h"
+#include <cstdlib>
+#include <memory>
 #define NCPP_EXCEPTIONS_PLEASE
 #include <algorithm>
 #include <assert.h>
@@ -99,7 +102,7 @@ public:
     std::shuffle(random_tiles.begin(), random_tiles.end(), g);
     std::shuffle(random_numbers.begin(), random_numbers.end(), g);
 
-    const std::vector<std::pair<int, int>> positions = {
+    positions_ = {
         {tmpx - 12, tmpy - 4}, {tmpx - 12, tmpy + 4}, {tmpx - 12, tmpy},
         {tmpx - 6, tmpy - 2},  {tmpx - 6, tmpy - 6},  {tmpx - 6, tmpy + 2},
         {tmpx - 6, tmpy + 6},  {tmpx + 12, tmpy - 4}, {tmpx + 12, tmpy + 4},
@@ -109,9 +112,9 @@ public:
         {tmpx, tmpy},
     };
 
-    assert(positions.size() == random_tiles.size());
-    assert(positions.size() != random_numbers.size() - 1);
-    for (int i = 0; i < positions.size(); i++) {
+    assert(positions_.size() == random_tiles.size());
+    assert(positions_.size() != random_numbers.size() - 1);
+    for (int i = 0; i < positions_.size(); i++) {
       tile_type tt = random_tiles[i];
       int num = -1;
       if (tt != DESERT) {
@@ -119,13 +122,38 @@ public:
         num = random_numbers.back();
         random_numbers.pop_back();
       }
-      DrawTile(tile_rgb.at(tt), positions[i].first, positions[i].second,
+      DrawTile(tile_rgb.at(tt), positions_[i].first, positions_[i].second,
                tile_name.at(tt), num);
     }
 
     DrawLegend();
+    DrawSettlement(20, 50);
 
     nc_.render();
+  }
+
+  void DrawSettlement(int y, int x) {
+    static constexpr int SETTLE_WIDTH = 4;
+    static constexpr int SETTLE_HEIGHT = 2;
+    std::unique_ptr<ncpp::Visual> ncv;
+    {
+      std::array<uint32_t, SETTLE_WIDTH * SETTLE_HEIGHT * 4> rgba = {
+          0x00ffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+          0xffffffff, 0xffffffff, 0xffffffff, 0x00ffffff,
+      };
+      ncv = std::make_unique<ncpp::Visual>(rgba.data(), SETTLE_HEIGHT,
+                                           SETTLE_WIDTH * 4, SETTLE_WIDTH);
+    }
+    ncvisual_options vopts = {};
+    vopts.leny = SETTLE_HEIGHT;
+    vopts.lenx = SETTLE_WIDTH;
+    vopts.blitter = NCBLIT_2x2;
+    vopts.flags = 0;
+    auto settle =
+        std::make_unique<ncpp::Plane>(SETTLE_HEIGHT/2, SETTLE_WIDTH, y, x);
+    vopts.n = settle->to_ncplane();
+    ncv->blit(&vopts);
+    settles_.push_back(std::move(settle));
   }
 
   void DrawLegend() {
@@ -136,8 +164,7 @@ public:
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
-    legend_->double_box(0, channels, LEGEND_HEIGHT - 1, LEGEND_WIDTH - 1,
-                       0);
+    legend_->double_box(0, channels, LEGEND_HEIGHT - 1, LEGEND_WIDTH - 1, 0);
     ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
     legend_->set_bg_alpha(NCALPHA_TRANSPARENT);
     legend_->set_fg_alpha(NCALPHA_TRANSPARENT);
@@ -234,12 +261,14 @@ private:
   std::mutex mtx_; // guards msdelay_
   std::unique_ptr<ncpp::Plane> board_;
   std::unique_ptr<ncpp::Plane> legend_;
+  std::vector<std::pair<int, int>> positions_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
+  std::vector<std::unique_ptr<ncpp::Plane>> settles_;
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
   std::chrono::milliseconds msdelay_;
-  int board_top_y_;
-  int board_left_x_;
+  unsigned int board_top_y_;
+  unsigned int board_left_x_;
 };
 
 bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
