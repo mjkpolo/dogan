@@ -33,10 +33,10 @@ static Sprite<4, 4> blue_settlement = {
                 0xffff6003,
             },
             {
-                0x007e350a,
-                0x00ff6003,
-                0x00ff6003,
-                0x00ff6003,
+                0xff7e350a,
+                0xffff6003,
+                0xffff6003,
+                0xffff6003,
             },
         },
 };
