@@ -1,19 +1,19 @@
-#include "notcurses/notcurses.h"
 #define NCPP_EXCEPTIONS_PLEASE
 #include <Sprite.hh>
-#include <algorithm>
-#include <array>
 #include <assert.h>
 #include <atomic>
+#include <brick.hh>
+#include <stone.hh>
 #include <cassert>
 #include <locale.h>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
-#include <random>
 #include <stdio.h>
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
+#include <wheat.hh>
+#include <wood.hh>
 
 static std::mutex ncmtx;
 
@@ -63,8 +63,8 @@ public:
   }
 
   void DrawBoard() {
-    static constexpr auto BOARD_WIDTH = 40;
-    static constexpr auto BOARD_HEIGHT = 30;
+    static constexpr auto BOARD_WIDTH = 60;
+    static constexpr auto BOARD_HEIGHT = 40;
     unsigned y, x;
     stdplane_->get_dim(&y, &x);
     board_top_y_ = y - (BOARD_HEIGHT + 2);
@@ -79,55 +79,40 @@ public:
     ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
     board_->set_base("", 0, channels);
     board_->printf(0, BOARD_WIDTH - strlen("DOGAN") / 2, "DOGAN");
-    int tmpx = x / 2 - 3;
-    int tmpy = y / 2 - 2;
 
-    std::vector<tile_type> random_tiles;
+    static constexpr int tile_side = 16;
 
-    for (const auto &[tile, count] : tile_count) {
-      for (int i = 0; i < count; ++i) {
-        random_tiles.push_back(tile);
-      }
-    }
+    std::unique_ptr<ncpp::Visual> wood_ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)wood_sprite, tile_side, tile_side * 4, tile_side);
+    std::unique_ptr<ncpp::Visual> brick_ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)brick_sprite, tile_side, tile_side * 4, tile_side);
+    std::unique_ptr<ncpp::Visual> wheat_ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)wheat_sprite, tile_side, tile_side * 4, tile_side);
+    std::unique_ptr<ncpp::Visual> stone_ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)stone_sprite, tile_side, tile_side * 4, tile_side);
 
-    std::vector<int> random_numbers;
-    for (const auto &[num, count] : number_count) {
-      for (int i = 0; i < count; i++) {
-        random_numbers.push_back(num);
-      }
-    }
+    ncvisual_options vopts = {};
+    vopts.leny = tile_side;
+    vopts.lenx = tile_side;
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = board_->to_ncplane();
 
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(random_tiles.begin(), random_tiles.end(), g);
-    std::shuffle(random_numbers.begin(), random_numbers.end(), g);
-
-    positions_ = {
-        {tmpx - 12, tmpy - 4}, {tmpx - 12, tmpy + 4}, {tmpx - 12, tmpy},
-        {tmpx - 6, tmpy - 2},  {tmpx - 6, tmpy - 6},  {tmpx - 6, tmpy + 2},
-        {tmpx - 6, tmpy + 6},  {tmpx + 12, tmpy - 4}, {tmpx + 12, tmpy + 4},
-        {tmpx + 12, tmpy},     {tmpx + 6, tmpy - 2},  {tmpx + 6, tmpy - 6},
-        {tmpx + 6, tmpy + 2},  {tmpx + 6, tmpy + 6},  {tmpx, tmpy - 4},
-        {tmpx, tmpy - 8},      {tmpx, tmpy + 4},      {tmpx, tmpy + 8},
-        {tmpx, tmpy},
-    };
-
-    assert(positions_.size() == random_tiles.size());
-    assert(positions_.size() != random_numbers.size() - 1);
-    for (int i = 0; i < positions_.size(); i++) {
-      tile_type tt = random_tiles[i];
-      int num = -1;
-      if (tt != DESERT) {
-        assert(!random_numbers.empty());
-        num = random_numbers.back();
-        random_numbers.pop_back();
-      }
-      DrawTile(tile_rgb.at(tt), positions_[i].first, positions_[i].second,
-               tile_name.at(tt), num);
-    }
-
-    DrawLegend();
-    DrawSettlement(20, 90);
+    constexpr int gap = tile_side+2;
+    int start_y = gap/2;
+    int start_x = gap/2;
+    vopts.y = start_y;
+    vopts.x = start_x;
+    wood_ncv->blit(&vopts);
+    vopts.y = start_y + 6;
+    vopts.x = start_x + gap/2;
+    brick_ncv->blit(&vopts);
+    vopts.y = start_y - 6;
+    vopts.x = start_x + gap/2;
+    wheat_ncv->blit(&vopts);
+    vopts.y = start_y;
+    vopts.x = start_x + gap;
+    stone_ncv->blit(&vopts);
 
     nc_.render();
   }
@@ -150,8 +135,7 @@ public:
     vopts.lenx = SETTLE_WIDTH;
     vopts.blitter = NCBLIT_2x1;
     vopts.flags = NCVISUAL_OPTION_NODEGRADE;
-    auto settle =
-        std::make_unique<ncpp::Plane>(2, SETTLE_WIDTH, y, x);
+    auto settle = std::make_unique<ncpp::Plane>(2, SETTLE_WIDTH, y, x);
     vopts.n = settle->to_ncplane();
 
     // vopts.pxoffy = 1;
