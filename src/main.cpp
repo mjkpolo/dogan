@@ -4,9 +4,12 @@
 #include <atomic>
 #include <brick.hh>
 #include <cassert>
+#include <desert.hh>
 #include <locale.h>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
+#include <random>
+#include <sheep.hh>
 #include <stdio.h>
 #include <stone.hh>
 #include <thread>
@@ -33,6 +36,11 @@ const std::unordered_map<tile_type, const char *> tile_name = {
     {WHEAT, "Wheat"}, {STONE, "Stone"}, {DESERT, "Desert"},
 };
 
+const std::unordered_map<tile_type, const uint32_t *> tile_sprites = {
+    {BRICK, brick_sprite}, {WOOD, wood_sprite},   {SHEEP, sheep_sprite},
+    {WHEAT, wheat_sprite}, {STONE, stone_sprite}, {DESERT, desert_sprite},
+};
+
 const int total_tiles = tile_count.at(BRICK) + tile_count.at(WOOD) +
                         tile_count.at(SHEEP) + tile_count.at(WHEAT) +
                         tile_count.at(STONE) + tile_count.at(DESERT);
@@ -50,6 +58,8 @@ public:
     DrawBoard();
   }
 
+  static constexpr int tile_length = 16;
+
   void Ticker() { // FIXME ideally this would be called from constructor :/
     std::chrono::milliseconds ms;
     do {
@@ -63,63 +73,115 @@ public:
   }
 
   void DrawBoard() {
-    static constexpr auto BOARD_WIDTH = 60;
-    static constexpr auto BOARD_HEIGHT = 40;
+    static constexpr int BOARD_WIDTH = 120;
+    static constexpr int BOARD_HEIGHT = 40;
+
     unsigned y, x;
     stdplane_->get_dim(&y, &x);
     board_top_y_ = y - (BOARD_HEIGHT + 2);
-    board_left_x_ = x / 2 - (BOARD_WIDTH + 1);
-    board_ = std::make_unique<ncpp::Plane>(BOARD_HEIGHT, BOARD_WIDTH * 2,
+    board_left_x_ = x / 2 - (BOARD_WIDTH / 2 + 1);
+    board_ = std::make_unique<ncpp::Plane>(BOARD_HEIGHT, BOARD_WIDTH,
                                            board_top_y_, board_left_x_);
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
-    board_->double_box(0, channels, BOARD_HEIGHT - 1, BOARD_WIDTH * 2 - 1,
+    board_->double_box(0, channels, BOARD_HEIGHT - 1, BOARD_WIDTH - 1,
                        NCBOXMASK_TOP);
     ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
     board_->set_base("", 0, channels);
-    board_->printf(0, BOARD_WIDTH - strlen("DOGAN") / 2, "DOGAN");
+    board_->printf(0, (BOARD_WIDTH - strlen("DOGAN")) / 2, "DOGAN");
 
-    static constexpr int tile_length = 16;
+    static constexpr int tile_center_y = (BOARD_HEIGHT - tile_length) / 2;
+    static constexpr int tile_center_x = (BOARD_WIDTH - tile_length) / 2;
+    assert(tile_length % 4 == 0);
+    positions_ = {
+        {tile_center_y, tile_center_x},
+        {tile_center_y + tile_length / 4 + 1,
+         tile_center_x + 1 * (tile_length / 2)},
+        {tile_center_y - (tile_length / 4 + 1),
+         tile_center_x + 1 * (tile_length / 2)},
+        {tile_center_y + tile_length / 4 + 1,
+         tile_center_x - 1 * (tile_length / 2)},
+        {tile_center_y - (tile_length / 4 + 1),
+         tile_center_x - 1 * (tile_length / 2)},
 
-    std::unique_ptr<ncpp::Visual> wood_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)wood_sprite, tile_length, tile_length * 4,
-        tile_length);
-    std::unique_ptr<ncpp::Visual> brick_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)brick_sprite, tile_length, tile_length * 4,
-        tile_length);
-    std::unique_ptr<ncpp::Visual> wheat_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)wheat_sprite, tile_length, tile_length * 4,
-        tile_length);
-    std::unique_ptr<ncpp::Visual> stone_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)stone_sprite, tile_length, tile_length * 4,
-        tile_length);
+        {tile_center_y + 2 * (tile_length / 4 + 1),
+         tile_center_x + 0 * (tile_length / 2)},
+        {tile_center_y - 2 * (tile_length / 4 + 1),
+         tile_center_x - 0 * (tile_length / 2)},
+        {tile_center_y + 0 * (tile_length / 4 + 1),
+         tile_center_x + 2 * (tile_length / 2)},
+        {tile_center_y - 0 * (tile_length / 4 + 1),
+         tile_center_x - 2 * (tile_length / 2)},
+
+        {tile_center_y + 2 * (tile_length / 4 + 1),
+         tile_center_x + 2 * (tile_length / 2)},
+        {tile_center_y + 2 * (tile_length / 4 + 1),
+         tile_center_x - 2 * (tile_length / 2)},
+        {tile_center_y - 2 * (tile_length / 4 + 1),
+         tile_center_x + 2 * (tile_length / 2)},
+        {tile_center_y - 2 * (tile_length / 4 + 1),
+         tile_center_x - 2 * (tile_length / 2)},
+
+        {tile_center_y + 1 * (tile_length / 4 + 1),
+         tile_center_x + 3 * (tile_length / 2)},
+        {tile_center_y + 1 * (tile_length / 4 + 1),
+         tile_center_x - 3 * (tile_length / 2)},
+        {tile_center_y - 1 * (tile_length / 4 + 1),
+         tile_center_x + 3 * (tile_length / 2)},
+        {tile_center_y - 1 * (tile_length / 4 + 1),
+         tile_center_x - 3 * (tile_length / 2)},
+
+        {tile_center_y + 0 * (tile_length / 4 + 1),
+         tile_center_x + 4 * (tile_length / 2)},
+        {tile_center_y + 0 * (tile_length / 4 + 1),
+         tile_center_x - 4 * (tile_length / 2)},
+    };
+
+    std::vector<tile_type> random_tiles;
+
+    for (const auto &[tile, count] : tile_count) {
+      for (int i = 0; i < count; ++i) {
+        random_tiles.push_back(tile);
+      }
+    }
+
+    std::vector<int> random_numbers;
+    for (const auto &[num, count] : number_count) {
+      for (int i = 0; i < count; ++i) {
+        random_numbers.push_back(num);
+      }
+    }
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(random_tiles.begin(), random_tiles.end(), g);
+    std::shuffle(random_numbers.begin(), random_numbers.end(), g);
+
+    for (int i = 0; i < positions_.size(); i++) {
+      tile_type tt = random_tiles[i];
+      int num = random_numbers.back();
+      if (tt != DESERT) {
+        random_numbers.pop_back();
+      }
+      DrawTile(positions_[i].first, positions_[i].second, tile_sprites.at(tt));
+    }
+
+    nc_.render();
+  }
+
+  void DrawTile(int y, int x, const uint32_t *sprite) {
+
+    std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)sprite, tile_length, tile_length * 4, tile_length);
 
     ncvisual_options vopts = {};
-    // vopts.leny = tile_length;
-    // vopts.lenx = tile_length;
     vopts.blitter = NCBLIT_2x1;
     vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
     vopts.n = board_->to_ncplane();
-
-    constexpr int gap = tile_length + 0;
-    assert(gap % 2 == 0);
-    int start_y = gap / 2;
-    int start_x = gap / 2;
-    vopts.y = start_y;
-    vopts.x = start_x;
-    wood_ncv->blit(&vopts);
-    vopts.y = start_y + 5;
-    vopts.x = start_x + gap / 2;
-    brick_ncv->blit(&vopts);
-    vopts.y = start_y - 5;
-    vopts.x = start_x + gap / 2;
-    wheat_ncv->blit(&vopts);
-    vopts.y = start_y;
-    vopts.x = start_x + gap;
-    stone_ncv->blit(&vopts);
-
-    nc_.render();
+    vopts.y = y;
+    vopts.x = x;
+    ncv->blit(&vopts);
   }
 
   void DrawSettlement(int y, int x) {
@@ -153,105 +215,6 @@ public:
     // ncchannels_set_bg_alpha(&channels, NCALPHA_BLEND);
     // legend_->set_base("", 0, channels);
     settles_.push_back(std::move(settle));
-  }
-
-  void DrawLegend() {
-    static constexpr auto LEGEND_WIDTH = 12;
-    static constexpr auto LEGEND_HEIGHT = 8;
-    legend_ = std::make_unique<ncpp::Plane>(
-        LEGEND_HEIGHT, LEGEND_WIDTH, board_top_y_ + 2, board_left_x_ + 2);
-    uint64_t channels = 0;
-    ncchannels_set_fg_rgb(&channels, 0x00b040);
-    ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
-    legend_->double_box(0, channels, LEGEND_HEIGHT - 1, LEGEND_WIDTH - 1, 0);
-    ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
-    legend_->set_bg_alpha(NCALPHA_TRANSPARENT);
-    legend_->set_fg_alpha(NCALPHA_TRANSPARENT);
-    int yoff = 0;
-    legend_->putstr(yoff, 1, "Legend:");
-    yoff += 1;
-    for (const auto &[tile, rgb] : tile_rgb) {
-      legend_->set_fg_alpha(NCALPHA_OPAQUE);
-      legend_->set_fg_rgb(rgb);
-      int xoff = 1;
-      legend_->putstr(yoff, xoff, "██");
-      xoff += 4;
-      legend_->set_fg_alpha(NCALPHA_TRANSPARENT);
-      legend_->putstr(yoff, xoff, tile_name.at(tile));
-      yoff += 1;
-    }
-    legend_->set_bg_alpha(NCALPHA_TRANSPARENT);
-    legend_->set_base("", 0, channels);
-  }
-
-  void DrawTile(unsigned int rgb, int x, int y, const char *name, int num) {
-    const size_t cols = 7;
-    const size_t rows = 4;
-
-    typedef enum {
-      MID,
-      TOP,
-      BOT,
-      U_L,
-      U_R,
-      L_L,
-      L_R,
-      EMP,
-    } tile_texture;
-
-    const tile_texture texture[rows][cols] = {
-        {EMP, U_L, TOP, TOP, TOP, U_R, EMP},
-        {U_L, MID, MID, MID, MID, MID, U_R},
-        {L_L, MID, MID, MID, MID, MID, L_R},
-        {EMP, L_L, BOT, BOT, BOT, L_R, EMP},
-    };
-
-    auto tile = std::make_unique<ncpp::Plane>(rows, cols, y, x, nullptr);
-    uint64_t channels = 0;
-    ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
-    ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
-    tile->set_fg_rgb(rgb);
-    tile->set_bg_alpha(NCALPHA_TRANSPARENT);
-    tile->set_base("", 0, channels);
-
-    char number[3];
-    snprintf(number, 3, "%d", num);
-
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        if (num != -1 && i == rows / 2 - 1 && j >= cols / 2 &&
-            j < cols / 2 + strlen(number)) {
-          tile->putc(i, j, number[j - cols / 2]);
-        } else {
-          switch (texture[i][j]) {
-          case MID:
-            tile->putstr(i, j, "█");
-            break;
-          case U_L:
-            tile->putstr(i, j, "🬵");
-            break;
-          case U_R:
-            tile->putstr(i, j, "🬱");
-            break;
-          case L_L:
-            tile->putstr(i, j, "🬊");
-            break;
-          case L_R:
-            tile->putstr(i, j, "🬆");
-            break;
-          case TOP:
-            tile->putstr(i, j, "🬹");
-            break;
-          case BOT:
-            tile->putstr(i, j, "🬎");
-            break;
-          default:
-            break;
-          }
-        }
-      }
-    }
-    tiles_.push_back(std::move(tile));
   }
 
 private:
