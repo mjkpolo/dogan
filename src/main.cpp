@@ -3,12 +3,12 @@
 #include <assert.h>
 #include <atomic>
 #include <brick.hh>
-#include <stone.hh>
 #include <cassert>
 #include <locale.h>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
 #include <stdio.h>
+#include <stone.hh>
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
@@ -80,35 +80,40 @@ public:
     board_->set_base("", 0, channels);
     board_->printf(0, BOARD_WIDTH - strlen("DOGAN") / 2, "DOGAN");
 
-    static constexpr int tile_side = 16;
+    static constexpr int tile_length = 16;
 
     std::unique_ptr<ncpp::Visual> wood_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)wood_sprite, tile_side, tile_side * 4, tile_side);
+        (const uint32_t *)wood_sprite, tile_length, tile_length * 4,
+        tile_length);
     std::unique_ptr<ncpp::Visual> brick_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)brick_sprite, tile_side, tile_side * 4, tile_side);
+        (const uint32_t *)brick_sprite, tile_length, tile_length * 4,
+        tile_length);
     std::unique_ptr<ncpp::Visual> wheat_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)wheat_sprite, tile_side, tile_side * 4, tile_side);
+        (const uint32_t *)wheat_sprite, tile_length, tile_length * 4,
+        tile_length);
     std::unique_ptr<ncpp::Visual> stone_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)stone_sprite, tile_side, tile_side * 4, tile_side);
+        (const uint32_t *)stone_sprite, tile_length, tile_length * 4,
+        tile_length);
 
     ncvisual_options vopts = {};
-    vopts.leny = tile_side;
-    vopts.lenx = tile_side;
+    // vopts.leny = tile_length;
+    // vopts.lenx = tile_length;
     vopts.blitter = NCBLIT_2x1;
     vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
     vopts.n = board_->to_ncplane();
 
-    constexpr int gap = tile_side+2;
-    int start_y = gap/2;
-    int start_x = gap/2;
+    constexpr int gap = tile_length + 0;
+    assert(gap % 2 == 0);
+    int start_y = gap / 2;
+    int start_x = gap / 2;
     vopts.y = start_y;
     vopts.x = start_x;
     wood_ncv->blit(&vopts);
-    vopts.y = start_y + 6;
-    vopts.x = start_x + gap/2;
+    vopts.y = start_y + 5;
+    vopts.x = start_x + gap / 2;
     brick_ncv->blit(&vopts);
-    vopts.y = start_y - 6;
-    vopts.x = start_x + gap/2;
+    vopts.y = start_y - 5;
+    vopts.x = start_x + gap / 2;
     wheat_ncv->blit(&vopts);
     vopts.y = start_y;
     vopts.x = start_x + gap;
