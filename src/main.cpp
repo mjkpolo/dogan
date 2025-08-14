@@ -96,7 +96,6 @@ public:
         move_numbers_down();
       }
       nc_.render();
-      fprintf(stderr, "waiting...\n");
       tick_ready = false;
       cv_done.notify_one();
     } while (!gameover_);
