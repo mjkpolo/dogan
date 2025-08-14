@@ -320,7 +320,7 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
       continue;
     }
     {
-      // std::lock_guard<std::mutex> l(ncmtx);
+      std::lock_guard<std::mutex> l(ncmtx);
       switch (input) {
       default:
         stdplane->cursor_move(0, 0);
