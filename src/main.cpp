@@ -1,11 +1,11 @@
-#include "notcurses/notcurses.h"
-#include <sys/_pthread/_pthread_types.h>
+#include <mutex>
 #define NCPP_EXCEPTIONS_PLEASE
 #include <Sprite.hh>
 #include <assert.h>
 #include <atomic>
 #include <brick.hh>
 #include <cassert>
+#include <condition_variable>
 #include <desert.hh>
 #include <locale.h>
 #include <ncpp/NotCurses.hh>
@@ -21,6 +21,9 @@
 #include <wood.hh>
 
 static std::mutex ncmtx;
+static std::condition_variable cv;
+static std::condition_variable cv_done;
+volatile bool tick_ready = false;
 
 typedef enum { BRICK, WOOD, SHEEP, WHEAT, STONE, DESERT } tile_type;
 
@@ -56,7 +59,8 @@ class Dogan {
 public:
   Dogan(ncpp::NotCurses &nc, std::atomic_bool &gameover)
       : nc_(nc), stdplane_(nc_.get_stdplane()), gameover_(gameover),
-        msdelay_(500) {
+        msdelay_(50), board_drawn(false), numbers_placed(false),
+        numbers_offset_(10) {
     DrawBoard();
   }
 
@@ -64,13 +68,37 @@ public:
 
   void Ticker() { // FIXME ideally this would be called from constructor :/
     std::chrono::milliseconds ms;
-    do {
-      mtx_.lock();
+    {
+      std::lock_guard<std::mutex> l(mtx_);
       ms = msdelay_;
-      mtx_.unlock();
+    }
+
+    do {
       std::this_thread::sleep_for(ms);
-      ncmtx.lock();
-      ncmtx.unlock();
+      {
+        std::lock_guard<std::mutex> l(ncmtx);
+        tick_ready = true;
+      }
+      cv.notify_all();
+
+      {
+        std::unique_lock<std::mutex> l(ncmtx);
+        cv_done.wait(l, [] { return !tick_ready; });
+      }
+    } while (!gameover_);
+  }
+
+  void Renderer() {
+    do {
+      std::unique_lock<std::mutex> l(ncmtx);
+      cv.wait(l, [] { return tick_ready; });
+      if (board_drawn && numbers_offset_ > 0) {
+        move_numbers_down();
+      }
+      nc_.render();
+      fprintf(stderr, "waiting...\n");
+      tick_ready = false;
+      cv_done.notify_one();
     } while (!gameover_);
   }
 
@@ -168,7 +196,8 @@ public:
         int num = random_numbers.back();
         random_numbers.pop_back();
         auto number_tile = std::make_unique<ncpp::Plane>(
-            board_.get(), 1, 3, positions_[i].first + tile_length / 4 - 1,
+            board_.get(), 1, 3,
+            positions_[i].first + numbers_offset_ + tile_length / 4 - 1,
             positions_[i].second + tile_length / 2 - 2);
         uint64_t channels = 0;
 
@@ -198,6 +227,7 @@ public:
     }
 
     nc_.render();
+    board_drawn = true;
   }
 
   void DrawTile(int y, int x, const uint32_t *sprite) {
@@ -249,6 +279,15 @@ public:
     settles_.push_back(std::move(settle));
   }
 
+  void move_numbers_down() {
+    for (auto &number : numbers_) {
+      int y, x;
+      number->get_yx(y, x);
+      number->move(y - 1, x);
+    }
+    numbers_offset_--;
+  }
+
 private:
   ncpp::NotCurses &nc_;
   uint64_t score_;
@@ -258,12 +297,15 @@ private:
   std::vector<std::pair<int, int>> positions_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
   std::vector<std::unique_ptr<ncpp::Plane>> numbers_;
+  unsigned int numbers_offset_;
   std::vector<std::unique_ptr<ncpp::Plane>> settles_;
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
   std::chrono::milliseconds msdelay_;
   unsigned int board_top_y_;
   unsigned int board_left_x_;
+  volatile bool board_drawn;
+  volatile bool numbers_placed;
 };
 
 bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
@@ -277,15 +319,16 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
     if (ni.evtype == ncpp::EvType::Release) {
       continue;
     }
-    ncmtx.lock();
-    switch (input) {
-    default:
-      stdplane->cursor_move(0, 0);
-      stdplane->printf("Got unknown input U+%06x", input);
-      nc.render();
-      break;
+    {
+      // std::lock_guard<std::mutex> l(ncmtx);
+      switch (input) {
+      default:
+        stdplane->cursor_move(0, 0);
+        stdplane->printf("Got unknown input U+%06x", input);
+        nc.render();
+        break;
+      }
     }
-    ncmtx.unlock();
   }
   return gameover || input == 'q';
 }
@@ -302,10 +345,12 @@ int main() {
   ncpp::NotCurses nc(ncopts);
   {
     Dogan d{nc, gameover};
-    std::thread tid(&Dogan::Ticker, &d);
+    std::thread t_tid(&Dogan::Ticker, &d);
+    std::thread r_tid(&Dogan::Renderer, &d);
     if (IOLoop(nc, d, gameover)) {
       gameover = true; // FIXME signal thread
-      tid.join();
+      t_tid.join();
+      r_tid.join();
     } else {
       return EXIT_FAILURE;
     }
