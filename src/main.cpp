@@ -1,3 +1,5 @@
+#include "notcurses/notcurses.h"
+#include <sys/_pthread/_pthread_types.h>
 #define NCPP_EXCEPTIONS_PLEASE
 #include <Sprite.hh>
 #include <assert.h>
@@ -160,11 +162,39 @@ public:
 
     for (int i = 0; i < positions_.size(); i++) {
       tile_type tt = random_tiles[i];
-      int num = random_numbers.back();
-      if (tt != DESERT) {
-        random_numbers.pop_back();
-      }
       DrawTile(positions_[i].first, positions_[i].second, tile_sprites.at(tt));
+
+      if (tt != DESERT) {
+        int num = random_numbers.back();
+        random_numbers.pop_back();
+        auto number_tile = std::make_unique<ncpp::Plane>(
+            board_.get(), 1, 3, positions_[i].first + tile_length / 4 - 1,
+            positions_[i].second + tile_length / 2 - 2);
+        uint64_t channels = 0;
+
+        // TODO figure out what is actually needed
+        ncchannels_set_bg_rgb(&channels, 0xf0d397);
+        ncchannels_set_bg_alpha(&channels, NCALPHA_OPAQUE);
+
+        unsigned int stylebits = NCSTYLE_BOLD;
+        if (num == 6 || num == 9) {
+          stylebits |= NCSTYLE_UNDERLINE;
+        }
+
+        ncplane_set_styles(number_tile->to_ncplane(), stylebits);
+        if (num == 6 || num == 8) {
+          number_tile->set_fg_rgb(0xff2020);
+        } else {
+          number_tile->set_fg_rgb(0x0);
+        }
+
+        number_tile->set_base(" ", 0, channels);
+        number_tile->set_fg_alpha(NCALPHA_OPAQUE);
+        number_tile->set_bg_alpha(NCALPHA_OPAQUE);
+        number_tile->set_bg_rgb(0xf0d397);
+        number_tile->printf(0, 1, "%d", num);
+        numbers_.push_back(std::move(number_tile));
+      }
     }
 
     nc_.render();
@@ -181,7 +211,9 @@ public:
     vopts.n = board_->to_ncplane();
     vopts.y = y;
     vopts.x = x;
-    ncv->blit(&vopts);
+    auto tile = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    assert(tile.get() != nullptr);
+    tiles_.push_back(std::move(tile));
   }
 
   void DrawSettlement(int y, int x) {
@@ -225,6 +257,7 @@ private:
   std::unique_ptr<ncpp::Plane> legend_;
   std::vector<std::pair<int, int>> positions_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
+  std::vector<std::unique_ptr<ncpp::Plane>> numbers_;
   std::vector<std::unique_ptr<ncpp::Plane>> settles_;
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
@@ -265,7 +298,7 @@ int main() {
   std::atomic_bool gameover = false;
   notcurses_options ncopts{};
   ncopts.flags = NCOPTION_INHIBIT_SETLOCALE;
-  ncopts.loglevel = NCLOGLEVEL_WARNING;
+  ncopts.loglevel = NCLOGLEVEL_DEBUG;
   ncpp::NotCurses nc(ncopts);
   {
     Dogan d{nc, gameover};
