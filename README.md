@@ -24,7 +24,8 @@ Run the build script:
 
 ## Debug
 
-add -DUSE_ASAN=on to [b](./b)
+add `-DUSE_ASAN=on` to [b](./b)
+
 To see the logs redirect to a debug file:
 
 ```bash

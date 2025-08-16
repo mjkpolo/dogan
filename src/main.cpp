@@ -1,4 +1,5 @@
 #include "notcurses/notcurses.h"
+#include <memory>
 #define NCPP_EXCEPTIONS_PLEASE
 #include <Sprite.hh>
 #include <assert.h>
@@ -116,7 +117,7 @@ public:
     assert(border_height % 2 == 0);
     board_ = std::make_unique<ncpp::Plane>(BOARD_HEIGHT, BOARD_WIDTH,
                                            board_top_y_, board_left_x_);
-    DrawBorder(2, 3, water_border_sprite);
+    DrawWaterBorder(2, 3, water_border_sprite);
 
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
@@ -125,7 +126,7 @@ public:
                        NCBOXMASK_TOP);
     ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
     board_->set_base("", 0, channels);
-    board_->printf(0, (BOARD_WIDTH - strlen("DOGAN")) / 2, "DOGAN");
+    board_->putstr(0, (BOARD_WIDTH - strlen("DOGAN")) / 2, "DOGAN");
 
     static constexpr int tile_center_y = (BOARD_HEIGHT - tile_length) / 2 + 3;
     static constexpr int tile_center_x = (BOARD_WIDTH - tile_length) / 2 - 5;
@@ -252,7 +253,19 @@ public:
     tiles_.push_back(std::move(tile));
   }
 
-  void DrawBorder(int y, int x, const uint32_t *sprite) {
+  void DrawTrade(const char *label, int y, int x) {
+    auto trade = std::make_unique<ncpp::Plane>(water_border_.get(), 1, 3, y, x);
+
+    ncplane_set_styles(trade->to_ncplane(), NCSTYLE_BOLD);
+    trade->set_bg_alpha(NCALPHA_TRANSPARENT);
+    trade->set_fg_alpha(NCALPHA_OPAQUE);
+    trade->set_fg_rgb(0x0);
+    trade->putstr(0, 0, label);
+
+    trades_.push_back(std::move(trade));
+  }
+
+  void DrawWaterBorder(int y, int x, const uint32_t *sprite) {
     std::unique_ptr<ncpp::Visual> ncv =
         std::make_unique<ncpp::Visual>((const uint32_t *)sprite, border_height,
                                        border_width * 4, border_width);
@@ -264,7 +277,16 @@ public:
     vopts.y = y;
     vopts.x = x;
     water_border_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
-    assert(water_border_.get() != nullptr);
+
+    DrawTrade("3:1", 1, 27);
+    DrawTrade("2:1", 2, 58);
+    DrawTrade("3:1", 6, 81);
+    DrawTrade("3:1", 16, 96);
+    DrawTrade("2:1", 27, 80);
+    DrawTrade("2:1", 32, 58);
+    DrawTrade("3:1", 31, 27);
+    DrawTrade("2:1", 22, 11);
+    DrawTrade("2:1", 12, 11);
   }
 
   void DrawSettlement(int y, int x) {
@@ -319,6 +341,7 @@ private:
   std::unique_ptr<ncpp::Plane> water_border_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
   std::vector<std::unique_ptr<ncpp::Plane>> numbers_;
+  std::vector<std::unique_ptr<ncpp::Plane>> trades_;
   unsigned int numbers_offset_;
   std::vector<std::unique_ptr<ncpp::Plane>> settles_;
   ncpp::Plane *stdplane_;

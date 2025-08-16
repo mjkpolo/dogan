@@ -3,7 +3,6 @@
 from PIL import Image
 from os.path import basename
 from argparse import ArgumentParser
-import numpy as np
 
 
 def main(images, output_dir):
@@ -13,7 +12,6 @@ def main(images, output_dir):
         name = name[:-4]
         img = Image.open(fn)
         pixels = img.tobytes()
-        print("Strides:", np.array(img).strides)
         assert len(pixels) % 4 == 0
         with open(f'{output_dir}/{name}.hh', 'w') as fp:
             fp.write(f"#ifndef DOGAN_{name.upper()}_SPRITE\n")
