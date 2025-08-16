@@ -6,17 +6,22 @@
 #include <brick.hh>
 #include <cassert>
 #include <condition_variable>
+#include <cstdlib>
 #include <desert.hh>
 #include <locale.h>
 #include <mutex>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
 #include <orange_city.hh>
+#include <orange_road_n_s.hh>
+#include <orange_road_ne_sw.hh>
+#include <orange_road_nw_se.hh>
 #include <orange_settlement.hh>
 #include <random>
 #include <red_city.hh>
 #include <red_settlement.hh>
 #include <sheep.hh>
+#include <stdexcept>
 #include <stdio.h>
 #include <stone.hh>
 #include <thread>
@@ -72,9 +77,21 @@ public:
     DrawBoard();
   }
 
+  static constexpr int board_w = 120;
+  static constexpr int board_h = 37;
+  static constexpr int water_border_w = 104;
+  static constexpr int water_border_h = 68;
   static constexpr int tile_length = 16;
-  static constexpr int border_width = 104;
-  static constexpr int border_height = 68;
+  static constexpr int settle_w = 6;
+  static constexpr int settle_h = 4;
+  static constexpr int city_w = 8;
+  static constexpr int city_h = 4;
+
+  enum RoadType {
+    ROAD_N_S,
+    ROAD_NE_SW,
+    ROAD_NW_SE,
+  };
 
   void Ticker() { // FIXME ideally this would be called from constructor :/
     std::chrono::milliseconds ms;
@@ -112,30 +129,29 @@ public:
   }
 
   void DrawBoard() {
-    static constexpr int BOARD_WIDTH = 120;
-    static constexpr int BOARD_HEIGHT = 40;
-
     unsigned y, x;
     stdplane_->get_dim(&y, &x);
-    board_top_y_ = y - (BOARD_HEIGHT + 2);
-    board_left_x_ = x / 2 - (BOARD_WIDTH / 2 + 1);
-    assert(border_height % 2 == 0);
-    board_ = std::make_unique<ncpp::Plane>(BOARD_HEIGHT, BOARD_WIDTH,
-                                           board_top_y_, board_left_x_);
-    DrawWaterBorder(2, 3, water_border_sprite);
+    board_top_y_ = y - (board_h + 2);
+    board_left_x_ = x / 2 - (board_w / 2 + 1);
+    board_ = std::make_unique<ncpp::Plane>(board_h, board_w, board_top_y_,
+                                           board_left_x_);
+
+    DrawWaterBorder((board_h - water_border_h / 2) / 2,
+                    (board_w - water_border_w) / 2, water_border_sprite);
+
     DrawSettlement(5, 5);
     DrawCity(7, 5);
+
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
-    board_->double_box(0, channels, BOARD_HEIGHT - 1, BOARD_WIDTH - 1,
-                       NCBOXMASK_TOP);
+    board_->double_box(0, channels, board_h - 1, board_w - 1, NCBOXMASK_TOP);
     ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
     board_->set_base("", 0, channels);
-    board_->putstr(0, (BOARD_WIDTH - strlen("DOGAN")) / 2, "DOGAN");
+    board_->putstr(0, (board_w - strlen("DOGAN")) / 2, "DOGAN");
 
-    static constexpr int tile_center_y = (BOARD_HEIGHT - tile_length) / 2 + 3;
-    static constexpr int tile_center_x = (BOARD_WIDTH - tile_length) / 2 - 5;
+    static constexpr int tile_center_y = (water_border_h - tile_length) / 4;
+    static constexpr int tile_center_x = (water_border_w - tile_length) / 2;
     assert(tile_length % 4 == 0);
     positions_ = {
         {tile_center_y, tile_center_x},
@@ -209,7 +225,7 @@ public:
         int num = random_numbers.back();
         random_numbers.pop_back();
         auto number_tile = std::make_unique<ncpp::Plane>(
-            board_.get(), 1, 3,
+            water_border_.get(), 1, 3,
             positions_[i].first + numbers_offset_ + tile_length / 4 - 1,
             positions_[i].second + tile_length / 2 - 2);
         uint64_t channels = 0;
@@ -240,6 +256,16 @@ public:
       }
     }
 
+    DrawRoad(13, 11, ROAD_NW_SE);
+    DrawRoad(13, 27, ROAD_NW_SE);
+    DrawRoad(8, 19, ROAD_NW_SE);
+    DrawRoad(10, 19, ROAD_N_S);
+    DrawRoad(15, 27, ROAD_N_S);
+    DrawRoad(10, 35, ROAD_N_S);
+    DrawRoad(13, 19, ROAD_NE_SW);
+    DrawRoad(18, 11, ROAD_NE_SW);
+    DrawRoad(8, 27, ROAD_NE_SW);
+    DrawRoad(3, 35, ROAD_NE_SW);
     nc_.render();
     board_drawn = true;
   }
@@ -251,7 +277,7 @@ public:
     ncvisual_options vopts = {};
     vopts.blitter = NCBLIT_2x1;
     vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
-    vopts.n = board_->to_ncplane();
+    vopts.n = water_border_->to_ncplane();
     vopts.y = y;
     vopts.x = x;
     auto tile = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
@@ -273,8 +299,8 @@ public:
 
   void DrawWaterBorder(int y, int x, const uint32_t *sprite) {
     std::unique_ptr<ncpp::Visual> ncv =
-        std::make_unique<ncpp::Visual>((const uint32_t *)sprite, border_height,
-                                       border_width * 4, border_width);
+        std::make_unique<ncpp::Visual>((const uint32_t *)sprite, water_border_h,
+                                       water_border_w * 4, water_border_w);
 
     ncvisual_options vopts = {};
     vopts.blitter = NCBLIT_2x1;
@@ -296,39 +322,72 @@ public:
   }
 
   void DrawSettlement(int y, int x) {
-    static constexpr int SETTLE_WIDTH = 6;
-    static constexpr int SETTLE_HEIGHT = 4;
-    std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)blue_settlement_sprite, SETTLE_HEIGHT,
-        SETTLE_WIDTH * 4, SETTLE_WIDTH);
+    std::unique_ptr<ncpp::Visual> ncv =
+        std::make_unique<ncpp::Visual>((const uint32_t *)blue_settlement_sprite,
+                                       settle_h, settle_w * 4, settle_w);
 
     ncvisual_options vopts = {};
     vopts.blitter = NCBLIT_2x1;
     vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
-    vopts.n = board_->to_ncplane();
     vopts.y = y;
     vopts.x = x;
-    vopts.n = board_->to_ncplane();
+    vopts.n = water_border_->to_ncplane();
     auto settlement = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
     settles_.push_back(std::move(settlement));
   }
 
   void DrawCity(int y, int x) {
-    static constexpr int SETTLE_WIDTH = 8;
-    static constexpr int SETTLE_HEIGHT = 4;
     std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)blue_city_sprite, SETTLE_HEIGHT,
-        SETTLE_WIDTH * 4, SETTLE_WIDTH);
+        (const uint32_t *)blue_city_sprite, city_h, city_w * 4, city_w);
 
     ncvisual_options vopts = {};
     vopts.blitter = NCBLIT_2x1;
     vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
-    vopts.n = board_->to_ncplane();
+    vopts.n = water_border_->to_ncplane();
     vopts.y = y;
     vopts.x = x;
-    vopts.n = board_->to_ncplane();
     auto city = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
     cities_.push_back(std::move(city));
+  }
+
+  void DrawRoad(int y, int x, RoadType rt) {
+    std::unique_ptr<ncpp::Visual> ncv;
+    int road_h;
+    int road_w;
+    switch (rt) {
+    case ROAD_NE_SW:
+      road_h = 6;
+      road_w = 8;
+      ncv = std::make_unique<ncpp::Visual>(
+          (const uint32_t *)orange_road_ne_sw_sprite, road_h, road_w * 4,
+          road_w);
+      break;
+    case ROAD_NW_SE:
+      road_h = 6;
+      road_w = 8;
+      ncv = std::make_unique<ncpp::Visual>(
+          (const uint32_t *)orange_road_nw_se_sprite, road_h, road_w * 4,
+          road_w);
+      break;
+    case ROAD_N_S:
+      road_h = 6;
+      road_w = 2;
+      ncv = std::make_unique<ncpp::Visual>(
+          (const uint32_t *)orange_road_n_s_sprite, road_h, road_w * 4, road_w);
+      break;
+    default:
+      throw std::invalid_argument("unknown road type");
+      break;
+    }
+
+    ncvisual_options vopts = {};
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = water_border_->to_ncplane();
+    vopts.y = y;
+    vopts.x = x;
+    auto road = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    roads_.push_back(std::move(road));
   }
 
   void move_numbers_down() {
@@ -354,6 +413,7 @@ private:
   unsigned int numbers_offset_;
   std::vector<std::unique_ptr<ncpp::Plane>> settles_;
   std::vector<std::unique_ptr<ncpp::Plane>> cities_;
+  std::vector<std::unique_ptr<ncpp::Plane>> roads_;
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
   std::chrono::milliseconds msdelay_;
