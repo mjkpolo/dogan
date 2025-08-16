@@ -1,4 +1,4 @@
-#include <mutex>
+#include "notcurses/notcurses.h"
 #define NCPP_EXCEPTIONS_PLEASE
 #include <Sprite.hh>
 #include <assert.h>
@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <desert.hh>
 #include <locale.h>
+#include <mutex>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
 #include <random>
@@ -17,6 +18,7 @@
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
+#include <water_border.hh>
 #include <wheat.hh>
 #include <wood.hh>
 
@@ -65,6 +67,8 @@ public:
   }
 
   static constexpr int tile_length = 16;
+  static constexpr int border_width = 104;
+  static constexpr int border_height = 68;
 
   void Ticker() { // FIXME ideally this would be called from constructor :/
     std::chrono::milliseconds ms;
@@ -109,8 +113,11 @@ public:
     stdplane_->get_dim(&y, &x);
     board_top_y_ = y - (BOARD_HEIGHT + 2);
     board_left_x_ = x / 2 - (BOARD_WIDTH / 2 + 1);
+    assert(border_height % 2 == 0);
     board_ = std::make_unique<ncpp::Plane>(BOARD_HEIGHT, BOARD_WIDTH,
                                            board_top_y_, board_left_x_);
+    DrawBorder(2, 3, water_border_sprite);
+
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
@@ -120,8 +127,8 @@ public:
     board_->set_base("", 0, channels);
     board_->printf(0, (BOARD_WIDTH - strlen("DOGAN")) / 2, "DOGAN");
 
-    static constexpr int tile_center_y = (BOARD_HEIGHT - tile_length) / 2;
-    static constexpr int tile_center_x = (BOARD_WIDTH - tile_length) / 2;
+    static constexpr int tile_center_y = (BOARD_HEIGHT - tile_length) / 2 + 3;
+    static constexpr int tile_center_x = (BOARD_WIDTH - tile_length) / 2 - 5;
     assert(tile_length % 4 == 0);
     positions_ = {
         {tile_center_y, tile_center_x},
@@ -201,7 +208,8 @@ public:
         uint64_t channels = 0;
 
         // TODO figure out what is actually needed
-        ncchannels_set_bg_rgb(&channels, 0xf0d397);
+        unsigned int base_rgb = 0xfdecbc;
+        ncchannels_set_bg_rgb(&channels, base_rgb);
         ncchannels_set_bg_alpha(&channels, NCALPHA_OPAQUE);
 
         unsigned int stylebits = NCSTYLE_BOLD;
@@ -219,7 +227,7 @@ public:
         number_tile->set_base(" ", 0, channels);
         number_tile->set_fg_alpha(NCALPHA_OPAQUE);
         number_tile->set_bg_alpha(NCALPHA_OPAQUE);
-        number_tile->set_bg_rgb(0xf0d397);
+        number_tile->set_bg_rgb(base_rgb);
         number_tile->printf(0, 1, "%d", num);
         numbers_.push_back(std::move(number_tile));
       }
@@ -230,7 +238,6 @@ public:
   }
 
   void DrawTile(int y, int x, const uint32_t *sprite) {
-
     std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
         (const uint32_t *)sprite, tile_length, tile_length * 4, tile_length);
 
@@ -243,6 +250,21 @@ public:
     auto tile = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
     assert(tile.get() != nullptr);
     tiles_.push_back(std::move(tile));
+  }
+
+  void DrawBorder(int y, int x, const uint32_t *sprite) {
+    std::unique_ptr<ncpp::Visual> ncv =
+        std::make_unique<ncpp::Visual>((const uint32_t *)sprite, border_height,
+                                       border_width * 4, border_width);
+
+    ncvisual_options vopts = {};
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = board_->to_ncplane();
+    vopts.y = y;
+    vopts.x = x;
+    water_border_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    assert(water_border_.get() != nullptr);
   }
 
   void DrawSettlement(int y, int x) {
@@ -294,6 +316,7 @@ private:
   std::unique_ptr<ncpp::Plane> board_;
   std::unique_ptr<ncpp::Plane> legend_;
   std::vector<std::pair<int, int>> positions_;
+  std::unique_ptr<ncpp::Plane> water_border_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
   std::vector<std::unique_ptr<ncpp::Plane>> numbers_;
   unsigned int numbers_offset_;

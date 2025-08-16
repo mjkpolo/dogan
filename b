@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-# ./gimp/rgba_headers.py ./gimp/*.png --output_dir include
+./gimp/rgba_headers.py ./gimp/*.png --output_dir include
 
 [[ -d build ]] || mkdir build
 cd build
