@@ -1,5 +1,3 @@
-#include "notcurses/notcurses.h"
-#include <memory>
 #define NCPP_EXCEPTIONS_PLEASE
 #include <Sprite.hh>
 #include <assert.h>
