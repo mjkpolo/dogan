@@ -1,7 +1,8 @@
 #define NCPP_EXCEPTIONS_PLEASE
-#include <Sprite.hh>
 #include <assert.h>
 #include <atomic>
+#include <blue_city.hh>
+#include <blue_settlement.hh>
 #include <brick.hh>
 #include <cassert>
 #include <condition_variable>
@@ -10,7 +11,11 @@
 #include <mutex>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
+#include <orange_city.hh>
+#include <orange_settlement.hh>
 #include <random>
+#include <red_city.hh>
+#include <red_settlement.hh>
 #include <sheep.hh>
 #include <stdio.h>
 #include <stone.hh>
@@ -19,6 +24,8 @@
 #include <unordered_map>
 #include <water_border.hh>
 #include <wheat.hh>
+#include <white_city.hh>
+#include <white_settlement.hh>
 #include <wood.hh>
 
 static std::mutex ncmtx;
@@ -116,7 +123,8 @@ public:
     board_ = std::make_unique<ncpp::Plane>(BOARD_HEIGHT, BOARD_WIDTH,
                                            board_top_y_, board_left_x_);
     DrawWaterBorder(2, 3, water_border_sprite);
-
+    DrawSettlement(5, 5);
+    DrawCity(7, 5);
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
     ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
@@ -288,36 +296,39 @@ public:
   }
 
   void DrawSettlement(int y, int x) {
-    static constexpr int SETTLE_WIDTH = 4;
+    static constexpr int SETTLE_WIDTH = 6;
     static constexpr int SETTLE_HEIGHT = 4;
-    assert(SETTLE_WIDTH == blue_settlement.cols_);
-    assert(SETTLE_HEIGHT == blue_settlement.rows_);
-    std::unique_ptr<ncpp::Visual> blue_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)blue_settlement.pixels, SETTLE_HEIGHT,
-        SETTLE_WIDTH * 4, SETTLE_WIDTH);
-
-    std::unique_ptr<ncpp::Visual> red_ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)orange_settlement.pixels, SETTLE_HEIGHT,
+    std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)blue_settlement_sprite, SETTLE_HEIGHT,
         SETTLE_WIDTH * 4, SETTLE_WIDTH);
 
     ncvisual_options vopts = {};
-    vopts.leny = SETTLE_HEIGHT;
-    vopts.lenx = SETTLE_WIDTH;
     vopts.blitter = NCBLIT_2x1;
-    vopts.flags = NCVISUAL_OPTION_NODEGRADE;
-    auto settle = std::make_unique<ncpp::Plane>(2, SETTLE_WIDTH, y, x);
-    vopts.n = settle->to_ncplane();
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = board_->to_ncplane();
+    vopts.y = y;
+    vopts.x = x;
+    vopts.n = board_->to_ncplane();
+    auto settlement = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    settles_.push_back(std::move(settlement));
+  }
 
-    // vopts.pxoffy = 1;
-    red_ncv->blit(&vopts);
-    vopts.flags |= NCVISUAL_OPTION_CHILDPLANE;
-    blue_ncv->blit(&vopts);
+  void DrawCity(int y, int x) {
+    static constexpr int SETTLE_WIDTH = 8;
+    static constexpr int SETTLE_HEIGHT = 4;
+    std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)blue_city_sprite, SETTLE_HEIGHT,
+        SETTLE_WIDTH * 4, SETTLE_WIDTH);
 
-    // settle->set_bg_alpha(NCALPHA_TRANSPARENT);
-    // uint64_t channels = 0;
-    // ncchannels_set_bg_alpha(&channels, NCALPHA_BLEND);
-    // legend_->set_base("", 0, channels);
-    settles_.push_back(std::move(settle));
+    ncvisual_options vopts = {};
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = board_->to_ncplane();
+    vopts.y = y;
+    vopts.x = x;
+    vopts.n = board_->to_ncplane();
+    auto city = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    cities_.push_back(std::move(city));
   }
 
   void move_numbers_down() {
@@ -342,6 +353,7 @@ private:
   std::vector<std::unique_ptr<ncpp::Plane>> trades_;
   unsigned int numbers_offset_;
   std::vector<std::unique_ptr<ncpp::Plane>> settles_;
+  std::vector<std::unique_ptr<ncpp::Plane>> cities_;
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
   std::chrono::milliseconds msdelay_;
