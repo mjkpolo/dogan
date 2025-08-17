@@ -2,6 +2,9 @@
 #include <assert.h>
 #include <atomic>
 #include <blue_city.hh>
+#include <blue_road_n_s.hh>
+#include <blue_road_ne_sw.hh>
+#include <blue_road_nw_se.hh>
 #include <blue_settlement.hh>
 #include <brick.hh>
 #include <cassert>
@@ -19,6 +22,9 @@
 #include <orange_settlement.hh>
 #include <random>
 #include <red_city.hh>
+#include <red_road_n_s.hh>
+#include <red_road_ne_sw.hh>
+#include <red_road_nw_se.hh>
 #include <red_settlement.hh>
 #include <sheep.hh>
 #include <stdexcept>
@@ -30,6 +36,9 @@
 #include <water_border.hh>
 #include <wheat.hh>
 #include <white_city.hh>
+#include <white_road_n_s.hh>
+#include <white_road_ne_sw.hh>
+#include <white_road_nw_se.hh>
 #include <white_settlement.hh>
 #include <wood.hh>
 
@@ -38,7 +47,7 @@ static std::condition_variable cv;
 static std::condition_variable cv_done;
 volatile bool tick_ready = false;
 
-typedef enum { BRICK, WOOD, SHEEP, WHEAT, STONE, DESERT } tile_type;
+enum tile_type { BRICK, WOOD, SHEEP, WHEAT, STONE, DESERT };
 
 const std::unordered_map<tile_type, int> tile_count = {
     {BRICK, 3}, {WOOD, 4}, {SHEEP, 4}, {WHEAT, 4}, {STONE, 3}, {DESERT, 1},
@@ -91,6 +100,13 @@ public:
     ROAD_N_S,
     ROAD_NE_SW,
     ROAD_NW_SE,
+  };
+
+  enum PlayerType {
+    PLAYER_ORANGE,
+    PLAYER_RED,
+    PLAYER_BLUE,
+    PLAYER_WHITE,
   };
 
   void Ticker() { // FIXME ideally this would be called from constructor :/
@@ -256,16 +272,16 @@ public:
       }
     }
 
-    DrawRoad(13, 11, ROAD_NW_SE);
-    DrawRoad(13, 27, ROAD_NW_SE);
-    DrawRoad(8, 19, ROAD_NW_SE);
-    DrawRoad(10, 19, ROAD_N_S);
-    DrawRoad(15, 27, ROAD_N_S);
-    DrawRoad(10, 35, ROAD_N_S);
-    DrawRoad(13, 19, ROAD_NE_SW);
-    DrawRoad(18, 11, ROAD_NE_SW);
-    DrawRoad(8, 27, ROAD_NE_SW);
-    DrawRoad(3, 35, ROAD_NE_SW);
+    DrawRoad(13, 11, ROAD_NW_SE, PLAYER_BLUE);
+    DrawRoad(13, 27, ROAD_NW_SE, PLAYER_BLUE);
+    DrawRoad(8, 19, ROAD_NW_SE, PLAYER_BLUE);
+    DrawRoad(10, 19, ROAD_N_S, PLAYER_BLUE);
+    DrawRoad(15, 27, ROAD_N_S, PLAYER_BLUE);
+    DrawRoad(10, 35, ROAD_N_S, PLAYER_BLUE);
+    DrawRoad(13, 19, ROAD_NE_SW, PLAYER_BLUE);
+    DrawRoad(18, 11, ROAD_NE_SW, PLAYER_BLUE);
+    DrawRoad(8, 27, ROAD_NE_SW, PLAYER_BLUE);
+    DrawRoad(3, 35, ROAD_NE_SW, PLAYER_BLUE);
     nc_.render();
     board_drawn = true;
   }
@@ -350,36 +366,69 @@ public:
     cities_.push_back(std::move(city));
   }
 
-  void DrawRoad(int y, int x, RoadType rt) {
-    std::unique_ptr<ncpp::Visual> ncv;
+  void DrawRoad(int y, int x, RoadType rt, PlayerType pt) {
     int road_h;
     int road_w;
+    const uint32_t *sprite;
     switch (rt) {
     case ROAD_NE_SW:
       road_h = 6;
       road_w = 8;
-      ncv = std::make_unique<ncpp::Visual>(
-          (const uint32_t *)orange_road_ne_sw_sprite, road_h, road_w * 4,
-          road_w);
+      switch (pt) {
+      case PLAYER_BLUE:
+        sprite = blue_road_ne_sw_sprite;
+        break;
+      case PLAYER_WHITE:
+        sprite = white_road_ne_sw_sprite;
+        break;
+      case PLAYER_ORANGE:
+        sprite = orange_road_ne_sw_sprite;
+        break;
+      case PLAYER_RED:
+        sprite = red_road_ne_sw_sprite;
+        break;
+      }
       break;
     case ROAD_NW_SE:
       road_h = 6;
       road_w = 8;
-      ncv = std::make_unique<ncpp::Visual>(
-          (const uint32_t *)orange_road_nw_se_sprite, road_h, road_w * 4,
-          road_w);
+      switch (pt) {
+      case PLAYER_BLUE:
+        sprite = blue_road_nw_se_sprite;
+        break;
+      case PLAYER_WHITE:
+        sprite = white_road_nw_se_sprite;
+        break;
+      case PLAYER_ORANGE:
+        sprite = orange_road_nw_se_sprite;
+        break;
+      case PLAYER_RED:
+        sprite = red_road_nw_se_sprite;
+        break;
+      }
       break;
     case ROAD_N_S:
       road_h = 6;
       road_w = 2;
-      ncv = std::make_unique<ncpp::Visual>(
-          (const uint32_t *)orange_road_n_s_sprite, road_h, road_w * 4, road_w);
-      break;
-    default:
-      throw std::invalid_argument("unknown road type");
+      switch (pt) {
+      case PLAYER_BLUE:
+        sprite = blue_road_n_s_sprite;
+        break;
+      case PLAYER_WHITE:
+        sprite = white_road_n_s_sprite;
+        break;
+      case PLAYER_ORANGE:
+        sprite = orange_road_n_s_sprite;
+        break;
+      case PLAYER_RED:
+        sprite = red_road_n_s_sprite;
+        break;
+      }
       break;
     }
 
+    auto ncv = std::make_unique<ncpp::Visual>((const uint32_t *)sprite, road_h,
+                                              road_w * 4, road_w);
     ncvisual_options vopts = {};
     vopts.blitter = NCBLIT_2x1;
     vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
