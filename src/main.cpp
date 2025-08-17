@@ -1,3 +1,4 @@
+#include "notcurses/notcurses.h"
 #define NCPP_EXCEPTIONS_PLEASE
 #include <assert.h>
 #include <atomic>
@@ -505,7 +506,8 @@ int main() {
   std::atomic_bool gameover = false;
   notcurses_options ncopts{};
   ncopts.flags = NCOPTION_INHIBIT_SETLOCALE;
-  ncopts.loglevel = NCLOGLEVEL_DEBUG;
+  // ncopts.loglevel = NCLOGLEVEL_DEBUG;
+  ncopts.loglevel = NCLOGLEVEL_SILENT;
   ncpp::NotCurses nc(ncopts);
   {
     Dogan d{nc, gameover};
