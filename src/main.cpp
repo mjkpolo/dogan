@@ -156,8 +156,8 @@ public:
     DrawWaterBorder((board_h - water_border_h / 2) / 2,
                     (board_w - water_border_w) / 2, water_border_sprite);
 
-    DrawSettlement(5, 5);
-    DrawCity(7, 5);
+    DrawSettlement(5, 5, PLAYER_WHITE);
+    DrawCity(7, 5, PLAYER_WHITE);
 
     uint64_t channels = 0;
     ncchannels_set_fg_rgb(&channels, 0x00b040);
@@ -338,10 +338,24 @@ public:
     DrawTrade("2:1", 12, 11);
   }
 
-  void DrawSettlement(int y, int x) {
-    std::unique_ptr<ncpp::Visual> ncv =
-        std::make_unique<ncpp::Visual>((const uint32_t *)blue_settlement_sprite,
-                                       settle_h, settle_w * 4, settle_w);
+  void DrawSettlement(int y, int x, PlayerType pt) {
+    const uint32_t *sprite;
+    switch (pt) {
+    case PLAYER_BLUE:
+      sprite = blue_settlement_sprite;
+      break;
+    case PLAYER_RED:
+      sprite = red_settlement_sprite;
+      break;
+    case PLAYER_ORANGE:
+      sprite = orange_settlement_sprite;
+      break;
+    case PLAYER_WHITE:
+      sprite = white_settlement_sprite;
+      break;
+    }
+    auto ncv = std::make_unique<ncpp::Visual>((const uint32_t *)sprite,
+                                              settle_h, settle_w * 4, settle_w);
 
     ncvisual_options vopts = {};
     vopts.blitter = NCBLIT_2x1;
@@ -353,9 +367,25 @@ public:
     settles_.push_back(std::move(settlement));
   }
 
-  void DrawCity(int y, int x) {
+  void DrawCity(int y, int x, PlayerType pt) {
+    const uint32_t *sprite;
+    switch (pt) {
+    case PLAYER_BLUE:
+      sprite = blue_city_sprite;
+      break;
+    case PLAYER_RED:
+      sprite = red_city_sprite;
+      break;
+    case PLAYER_ORANGE:
+      sprite = orange_city_sprite;
+      break;
+    case PLAYER_WHITE:
+      sprite = white_city_sprite;
+      break;
+    }
+
     std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
-        (const uint32_t *)blue_city_sprite, city_h, city_w * 4, city_w);
+        (const uint32_t *)sprite, city_h, city_w * 4, city_w);
 
     ncvisual_options vopts = {};
     vopts.blitter = NCBLIT_2x1;
