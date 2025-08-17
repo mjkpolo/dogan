@@ -1,5 +1,5 @@
-#include "notcurses/notcurses.h"
 #define NCPP_EXCEPTIONS_PLEASE
+#include <algorithm>
 #include <assert.h>
 #include <atomic>
 #include <blue_city.hh>
