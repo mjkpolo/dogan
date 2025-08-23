@@ -28,7 +28,6 @@
 #include <red_road_nw_se.hh>
 #include <red_settlement.hh>
 #include <sheep.hh>
-#include <stdexcept>
 #include <stdio.h>
 #include <stone.hh>
 #include <thread>
@@ -73,9 +72,17 @@ const int total_tiles = tile_count.at(BRICK) + tile_count.at(WOOD) +
                         tile_count.at(SHEEP) + tile_count.at(WHEAT) +
                         tile_count.at(STONE) + tile_count.at(DESERT);
 
-const std::unordered_map<tile_type, unsigned int> tile_rgb = {
-    {BRICK, 0xfc9003}, {WOOD, 0x026317},  {SHEEP, 0x72f78f},
-    {WHEAT, 0xe6f23d}, {STONE, 0x737373}, {DESERT, 0xcfcc95},
+enum RoadType {
+  ROAD_N_S,
+  ROAD_NE_SW,
+  ROAD_NW_SE,
+};
+
+enum PlayerType {
+  PLAYER_ORANGE,
+  PLAYER_RED,
+  PLAYER_BLUE,
+  PLAYER_WHITE,
 };
 
 class Dogan {
@@ -96,19 +103,6 @@ public:
   static constexpr int settle_h = 4;
   static constexpr int city_w = 8;
   static constexpr int city_h = 4;
-
-  enum RoadType {
-    ROAD_N_S,
-    ROAD_NE_SW,
-    ROAD_NW_SE,
-  };
-
-  enum PlayerType {
-    PLAYER_ORANGE,
-    PLAYER_RED,
-    PLAYER_BLUE,
-    PLAYER_WHITE,
-  };
 
   void Ticker() { // FIXME ideally this would be called from constructor :/
     std::chrono::milliseconds ms;
@@ -170,7 +164,7 @@ public:
     static constexpr int tile_center_y = (water_border_h - tile_length) / 4;
     static constexpr int tile_center_x = (water_border_w - tile_length) / 2;
     assert(tile_length % 4 == 0);
-    positions_ = {
+    tile_positions_ = {
         {tile_center_y, tile_center_x},
         {tile_center_y + tile_length / 4 + 1,
          tile_center_x + 1 * (tile_length / 2)},
@@ -234,17 +228,18 @@ public:
     std::shuffle(random_tiles.begin(), random_tiles.end(), g);
     std::shuffle(random_numbers.begin(), random_numbers.end(), g);
 
-    for (int i = 0; i < positions_.size(); i++) {
+    for (int i = 0; i < tile_positions_.size(); i++) {
       tile_type tt = random_tiles[i];
-      DrawTile(positions_[i].first, positions_[i].second, tile_sprites.at(tt));
+      DrawTile(tile_positions_[i].first, tile_positions_[i].second,
+               tile_sprites.at(tt));
 
       if (tt != DESERT) {
         int num = random_numbers.back();
         random_numbers.pop_back();
         auto number_tile = std::make_unique<ncpp::Plane>(
             water_border_.get(), 1, 3,
-            positions_[i].first + numbers_offset_ + tile_length / 4 - 1,
-            positions_[i].second + tile_length / 2 - 2);
+            tile_positions_[i].first + numbers_offset_ + tile_length / 4 - 1,
+            tile_positions_[i].second + tile_length / 2 - 2);
         uint64_t channels = 0;
 
         // TODO figure out what is actually needed
@@ -273,16 +268,41 @@ public:
       }
     }
 
-    DrawRoad(13, 11, ROAD_NW_SE, PLAYER_BLUE);
-    DrawRoad(13, 27, ROAD_NW_SE, PLAYER_BLUE);
-    DrawRoad(8, 19, ROAD_NW_SE, PLAYER_BLUE);
-    DrawRoad(10, 19, ROAD_N_S, PLAYER_BLUE);
-    DrawRoad(15, 27, ROAD_N_S, PLAYER_BLUE);
-    DrawRoad(10, 35, ROAD_N_S, PLAYER_BLUE);
-    DrawRoad(13, 19, ROAD_NE_SW, PLAYER_BLUE);
-    DrawRoad(18, 11, ROAD_NE_SW, PLAYER_BLUE);
-    DrawRoad(8, 27, ROAD_NE_SW, PLAYER_BLUE);
-    DrawRoad(3, 35, ROAD_NE_SW, PLAYER_BLUE);
+    road_positions_ = {
+        // center nw and ne
+        {{tile_center_y, tile_center_x + tile_length / 2 - 1}, ROAD_NE_SW},
+        {{tile_center_y, tile_center_x - 1}, ROAD_NW_SE},
+        // center sw and se
+        {{tile_center_y + tile_length / 4 + 1,
+          tile_center_x + tile_length / 2 - 1},
+         ROAD_NW_SE},
+        {{tile_center_y + tile_length / 4 + 1, tile_center_x - 1}, ROAD_NE_SW},
+        // center top and bottom
+        {{tile_center_y + tile_length / 2 - 1,
+          tile_center_x + tile_length / 2 - 1},
+         ROAD_N_S},
+        {{tile_center_y - tile_length / 4 + 1,
+          tile_center_x + tile_length / 2 - 1},
+         ROAD_N_S},
+        // center left and right
+        {{tile_center_y + tile_length / 8, tile_center_x - 1}, ROAD_N_S},
+        {{tile_center_y + tile_length / 8, tile_center_x + tile_length - 1},
+         ROAD_N_S},
+        // top nw and ne
+        {{tile_center_y+tile_length/2+2, tile_center_x + tile_length / 2 - 1}, ROAD_NE_SW},
+        {{tile_center_y+tile_length/2+2, tile_center_x - 1}, ROAD_NW_SE},
+        // top sw and se
+        {{tile_center_y+tile_length/2+2 + tile_length / 4 + 1,
+          tile_center_x + tile_length / 2 - 1},
+         ROAD_NW_SE},
+        {{tile_center_y+tile_length/2+2 + tile_length / 4 + 1, tile_center_x - 1}, ROAD_NE_SW},
+    };
+
+    for (const auto &[pos, rt] : road_positions_) {
+      y = pos.first;
+      x = pos.second;
+      DrawRoad(y, x, rt, PLAYER_BLUE);
+    }
     nc_.render();
     board_drawn = true;
   }
@@ -485,7 +505,8 @@ private:
   std::mutex mtx_; // guards msdelay_
   std::unique_ptr<ncpp::Plane> board_;
   std::unique_ptr<ncpp::Plane> legend_;
-  std::vector<std::pair<int, int>> positions_;
+  std::vector<std::pair<int, int>> tile_positions_;
+  std::vector<std::pair<std::pair<int, int>, RoadType>> road_positions_;
   std::unique_ptr<ncpp::Plane> water_border_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
   std::vector<std::unique_ptr<ncpp::Plane>> numbers_;
