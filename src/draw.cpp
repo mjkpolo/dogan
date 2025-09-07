@@ -13,9 +13,6 @@ void Dogan::DrawBoard() {
   DrawWaterBorder((board_h - water_border_h / 2) / 2,
                   (board_w - water_border_w) / 2, water_border_sprite);
 
-  DrawSettlement(5, 5, PLAYER_WHITE);
-  DrawCity(7, 5, PLAYER_WHITE);
-
   uint64_t channels = 0;
   ncchannels_set_fg_rgb(&channels, 0x00b040);
   ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
@@ -91,7 +88,7 @@ void Dogan::DrawBoard() {
   }
 
   for (const auto &[y, x] : building_positions_) {
-    DrawSettlement(y, x, PLAYER_BLUE);
+    DrawCity(y, x, PLAYER_BLUE);
   }
 
   nc_.render();
@@ -179,6 +176,8 @@ void Dogan::DrawSettlement(int y, int x, PlayerType pt) {
 }
 
 void Dogan::DrawCity(int y, int x, PlayerType pt) {
+  // WARN subtract 1 from x to match settlement
+  x -= 1;
   const uint32_t *sprite;
   switch (pt) {
   case PLAYER_BLUE:
