@@ -19,7 +19,12 @@ endif()
 
 add_subdirectory(notcurses)
 
-add_executable(dogan src/main.cpp)
+set(DOGAN_SRC
+  src/main.cpp
+  src/dogan_draw.cpp
+)
+
+add_executable(dogan ${DOGAN_SRC})
 target_include_directories(dogan
   PRIVATE
     include

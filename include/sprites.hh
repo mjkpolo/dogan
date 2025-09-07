@@ -1,0 +1,32 @@
+#ifndef DOGAN_SPRITES
+#define DOGAN_SPRITES
+
+#include "sprites/blue_city.hh"
+#include "sprites/blue_road_n_s.hh"
+#include "sprites/blue_road_ne_sw.hh"
+#include "sprites/blue_road_nw_se.hh"
+#include "sprites/blue_settlement.hh"
+#include "sprites/brick.hh"
+#include "sprites/desert.hh"
+#include "sprites/orange_city.hh"
+#include "sprites/orange_road_n_s.hh"
+#include "sprites/orange_road_ne_sw.hh"
+#include "sprites/orange_road_nw_se.hh"
+#include "sprites/orange_settlement.hh"
+#include "sprites/red_city.hh"
+#include "sprites/red_road_n_s.hh"
+#include "sprites/red_road_ne_sw.hh"
+#include "sprites/red_road_nw_se.hh"
+#include "sprites/red_settlement.hh"
+#include "sprites/sheep.hh"
+#include "sprites/stone.hh"
+#include "sprites/water_border.hh"
+#include "sprites/wheat.hh"
+#include "sprites/white_city.hh"
+#include "sprites/white_road_n_s.hh"
+#include "sprites/white_road_ne_sw.hh"
+#include "sprites/white_road_nw_se.hh"
+#include "sprites/white_settlement.hh"
+#include "sprites/wood.hh"
+
+#endif
