@@ -21,7 +21,8 @@ add_subdirectory(notcurses)
 
 set(DOGAN_SRC
   src/main.cpp
-  src/dogan_draw.cpp
+  src/draw.cpp
+  src/init.cpp
 )
 
 add_executable(dogan ${DOGAN_SRC})

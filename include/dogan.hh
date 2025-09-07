@@ -2,19 +2,18 @@
 #define DOGAN_DOGAN
 
 #include "sprites.hh"
-#include <algorithm>
 #include <cassert>
+#include <condition_variable>
 #include <mutex>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
-#include <random>
 #include <thread>
 #include <unordered_map>
 
 extern std::mutex ncmtx;
-extern std::condition_variable cv;
-extern std::condition_variable cv_done;
-extern volatile bool tick_ready;
+static std::condition_variable cv;
+static std::condition_variable cv_done;
+static volatile bool tick_ready = false;
 
 enum tile_type { BRICK, WOOD, SHEEP, WHEAT, STONE, DESERT };
 
@@ -60,6 +59,7 @@ public:
       : nc_(nc), stdplane_(nc_.get_stdplane()), gameover_(gameover),
         msdelay_(50), board_drawn(false), numbers_placed(false),
         numbers_offset_(10) {
+    InitPositions();
     DrawBoard();
   }
 
@@ -108,6 +108,9 @@ public:
     } while (!gameover_);
   }
 
+private:
+  void InitPositions();
+
   void DrawBoard();
 
   void DrawTile(int y, int x, const uint32_t *sprite);
@@ -131,7 +134,6 @@ public:
     numbers_offset_--;
   }
 
-private:
   ncpp::NotCurses &nc_;
   uint64_t score_;
   std::mutex mtx_; // guards msdelay_
@@ -155,6 +157,5 @@ private:
   volatile bool board_drawn;
   volatile bool numbers_placed;
 };
-
 
 #endif

@@ -1,7 +1,6 @@
 #define NCPP_EXCEPTIONS_PLEASE
 #include "dogan.hh"
 #include <atomic>
-#include <condition_variable>
 #include <cstdlib>
 #include <locale.h>
 #include <mutex>
@@ -10,9 +9,6 @@
 #include <unistd.h>
 
 std::mutex ncmtx;
-std::condition_variable cv;
-std::condition_variable cv_done;
-volatile bool tick_ready = false;
 
 bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
   ncpp::Plane *stdplane = nc.get_stdplane();
