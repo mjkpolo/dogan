@@ -89,6 +89,11 @@ void Dogan::DrawBoard() {
     x = pos.second;
     DrawRoad(y, x, rt, PLAYER_BLUE);
   }
+
+  for (const auto &[y, x] : building_positions_) {
+    DrawSettlement(y, x, PLAYER_BLUE);
+  }
+
   nc_.render();
   board_drawn = true;
 }

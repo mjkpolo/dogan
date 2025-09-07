@@ -57,7 +57,7 @@ class Dogan {
 public:
   Dogan(ncpp::NotCurses &nc, std::atomic_bool &gameover)
       : nc_(nc), stdplane_(nc_.get_stdplane()), gameover_(gameover),
-        msdelay_(50), board_drawn(false), numbers_placed(false),
+        msdelay_(50), board_drawn(false),
         numbers_offset_(10) {
     InitPositions();
     DrawBoard();
@@ -135,27 +135,29 @@ private:
   }
 
   ncpp::NotCurses &nc_;
-  uint64_t score_;
   std::mutex mtx_; // guards msdelay_
-  std::unique_ptr<ncpp::Plane> board_;
-  std::unique_ptr<ncpp::Plane> legend_;
+
   std::vector<std::pair<int, int>> tile_positions_;
   std::vector<std::pair<std::pair<int, int>, RoadType>> road_positions_;
+  std::vector<std::pair<int, int>> building_positions_;
+
+  std::unique_ptr<ncpp::Plane> board_;
   std::unique_ptr<ncpp::Plane> water_border_;
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
   std::vector<std::unique_ptr<ncpp::Plane>> numbers_;
   std::vector<std::unique_ptr<ncpp::Plane>> trades_;
-  unsigned int numbers_offset_;
   std::vector<std::unique_ptr<ncpp::Plane>> settles_;
   std::vector<std::unique_ptr<ncpp::Plane>> cities_;
   std::vector<std::unique_ptr<ncpp::Plane>> roads_;
+
+  unsigned int numbers_offset_;
+
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
   std::chrono::milliseconds msdelay_;
   unsigned int board_top_y_;
   unsigned int board_left_x_;
   volatile bool board_drawn;
-  volatile bool numbers_placed;
 };
 
 #endif
