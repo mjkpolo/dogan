@@ -1,25 +1,54 @@
 #include "dogan.hh"
+#include "notcurses/notcurses.h"
 #include <algorithm>
+#include <iostream>
 #include <random>
 
-void Dogan::DrawBoard() {
-  unsigned y, x;
-  stdplane_->get_dim(&y, &x);
-  board_top_y_ = y - (board_h + 2);
-  board_left_x_ = x / 2 - (board_w / 2 + 1);
-  board_ = std::make_unique<ncpp::Plane>(board_h, board_w, board_top_y_,
-                                         board_left_x_);
+void Dogan::DrawToolbar(toolbar_modes mode) {
+  toolbar_ = std::make_unique<ncpp::Plane>(1, x_, y_ - 1, 0);
+  uint64_t channels = 0;
 
-  DrawWaterBorder((board_h - water_border_h / 2) / 2,
-                  (board_w - water_border_w) / 2, water_border_sprite);
+  unsigned int base_rgb = 0x2a273f;
+  unsigned int text_rgb = 0xe0def4;
+  unsigned int selected_rgb = 0xeb6f92;
+  unsigned int unselected_rgb = 0x6e6a86;
+  ncchannels_set_bg_rgb(&channels, base_rgb);
+  ncchannels_set_bg_alpha(&channels, NCALPHA_OPAQUE);
+  toolbar_->set_base("", 0, channels);
+  toolbar_->set_fg_alpha(NCALPHA_OPAQUE);
+  toolbar_->set_bg_alpha(NCALPHA_OPAQUE);
+  ncplane_set_styles(toolbar_->to_ncplane(), NCSTYLE_BOLD);
+
+  toolbar_->set_fg_rgb(text_rgb);
+  toolbar_->putstr(0, 0, " Ctrl + ");
+  toolbar_->set_fg_rgb(base_rgb);
+
+  if (mode == TOOLBAR_START)
+    toolbar_->set_bg_rgb(selected_rgb);
+  else
+    toolbar_->set_bg_rgb(unselected_rgb);
+  toolbar_->putstr(0, 8, " <s> START ");
+  if (mode == TOOLBAR_MOVE)
+    toolbar_->set_bg_rgb(selected_rgb);
+  else
+    toolbar_->set_bg_rgb(unselected_rgb);
+  toolbar_->putstr(0, 20, " <m> MOVE ");
+}
+
+void Dogan::DrawBoard() {
+  std::cerr << "x was: " << x_ << " and y was: " << y_ << std::endl;
+  if (x_ < water_border_w + 22 || y_ * 2 < water_border_h + 10) {
+    throw ncpp::init_error("terminal is too small");
+  }
+
+  board_ = std::make_unique<ncpp::Plane>(y_, x_, 0, 0);
+  DrawToolbar(TOOLBAR_NONE);
+
+  DrawWaterBorder((y_ - water_border_h / 2) / 2, (x_ - water_border_w) / 2,
+                  water_border_sprite);
 
   uint64_t channels = 0;
-  ncchannels_set_fg_rgb(&channels, 0x00b040);
-  ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
-  board_->double_box(0, channels, board_h - 1, board_w - 1, NCBOXMASK_TOP);
-  ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
-  board_->set_base("", 0, channels);
-  board_->putstr(0, (board_w - strlen("DOGAN")) / 2, "DOGAN");
+  board_->putstr(0, (x_ - strlen("DOGAN")) / 2, "DOGAN");
 
   std::vector<tile_type> random_tiles;
 
@@ -81,15 +110,15 @@ void Dogan::DrawBoard() {
     }
   }
 
-  for (const auto &[pos, rt] : road_positions_) {
-    y = pos.first;
-    x = pos.second;
-    DrawRoad(y, x, rt, PLAYER_BLUE);
-  }
+  // for (const auto &[pos, rt] : road_positions_) {
+  //   y = pos.first;
+  //   x = pos.second;
+  //   DrawRoad(y, x, rt, PLAYER_BLUE);
+  // }
 
-  for (const auto &[y, x] : building_positions_) {
-    DrawCity(y, x, PLAYER_BLUE);
-  }
+  // for (const auto &[y, x] : building_positions_) {
+  //   DrawCity(y, x, PLAYER_BLUE);
+  // }
 
   nc_.render();
   board_drawn = true;

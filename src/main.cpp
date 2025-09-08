@@ -10,7 +10,7 @@
 
 std::mutex ncmtx;
 
-bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
+bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
   ncpp::Plane *stdplane = nc.get_stdplane();
   char32_t input = 0;
   ncinput ni;
@@ -24,6 +24,14 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &t, std::atomic_bool &gameover) {
     {
       std::lock_guard<std::mutex> l(ncmtx);
       switch (input) {
+      case 0x53:
+        d.DrawToolbar(TOOLBAR_START);
+        nc.render();
+        break;
+      case 0x4d:
+        d.DrawToolbar(TOOLBAR_MOVE);
+        nc.render();
+        break;
       default:
         stdplane->cursor_move(0, 0);
         stdplane->printf("Got unknown input U+%06x", input);

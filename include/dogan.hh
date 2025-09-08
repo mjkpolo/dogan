@@ -15,7 +15,20 @@ static std::condition_variable cv;
 static std::condition_variable cv_done;
 static volatile bool tick_ready = false;
 
-enum tile_type { BRICK, WOOD, SHEEP, WHEAT, STONE, DESERT };
+enum tile_type {
+  BRICK,
+  WOOD,
+  SHEEP,
+  WHEAT,
+  STONE,
+  DESERT,
+};
+
+enum toolbar_modes {
+  TOOLBAR_NONE,
+  TOOLBAR_START,
+  TOOLBAR_MOVE,
+};
 
 const std::unordered_map<tile_type, int> tile_count = {
     {BRICK, 3}, {WOOD, 4}, {SHEEP, 4}, {WHEAT, 4}, {STONE, 3}, {DESERT, 1},
@@ -57,14 +70,12 @@ class Dogan {
 public:
   Dogan(ncpp::NotCurses &nc, std::atomic_bool &gameover)
       : nc_(nc), stdplane_(nc_.get_stdplane()), gameover_(gameover),
-        msdelay_(50), board_drawn(false),
-        numbers_offset_(10) {
+        msdelay_(100), board_drawn(false), numbers_offset_(10) {
+    stdplane_->get_dim(&y_, &x_);
     InitPositions();
     DrawBoard();
   }
 
-  static constexpr int board_w = 120;
-  static constexpr int board_h = 37;
   static constexpr int water_border_w = 104;
   static constexpr int water_border_h = 68;
   static constexpr int tile_length = 16;
@@ -108,6 +119,8 @@ public:
     } while (!gameover_);
   }
 
+  void DrawToolbar(toolbar_modes mode);
+
 private:
   void InitPositions();
 
@@ -143,6 +156,8 @@ private:
 
   std::unique_ptr<ncpp::Plane> board_;
   std::unique_ptr<ncpp::Plane> water_border_;
+  std::unique_ptr<ncpp::Plane> toolbar_;
+
   std::vector<std::unique_ptr<ncpp::Plane>> tiles_;
   std::vector<std::unique_ptr<ncpp::Plane>> numbers_;
   std::vector<std::unique_ptr<ncpp::Plane>> trades_;
@@ -155,8 +170,7 @@ private:
   ncpp::Plane *stdplane_;
   std::atomic_bool &gameover_;
   std::chrono::milliseconds msdelay_;
-  unsigned int board_top_y_;
-  unsigned int board_left_x_;
+  unsigned y_, x_;
   volatile bool board_drawn;
 };
 
