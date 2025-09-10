@@ -1,8 +1,8 @@
 #include "dogan.hh"
 #include "notcurses/notcurses.h"
 #include <algorithm>
-#include <iostream>
 #include <random>
+#include <unistd.h>
 
 void Dogan::DrawToolbar(toolbar_modes mode) {
   toolbar_ = std::make_unique<ncpp::Plane>(1, x_, y_ - 1, 0);
@@ -36,9 +36,22 @@ void Dogan::DrawToolbar(toolbar_modes mode) {
 }
 
 void Dogan::DrawBoard() {
-  std::cerr << "x was: " << x_ << " and y was: " << y_ << std::endl;
-  if (x_ < water_border_w + 22 || y_ * 2 < water_border_h + 10) {
-    throw ncpp::init_error("terminal is too small");
+  constexpr int x_req = water_border_w + 22;
+  constexpr int y_req = water_border_h + 10;
+  if (x_ < x_req || y_ * 2 < y_req) {
+    board_ = std::make_unique<ncpp::Plane>(y_, x_, 0, 0);
+    board_->putstr(y_ / 2, (x_ - 18) / 2, "TERMINAL TOO SMALL");
+    board_->printf(y_ / 2 + 1, (x_ - 32) / 2, "NEED %d MORE ROWS, %d MORE COLS",
+                   std::max(y_req - (int)y_ * 2, 0),
+                   std::max(x_req - (int)x_, 0));
+
+    for (int i = 3; i > 0; i--) {
+      board_->printf(y_ / 2 + 3, (x_ - 16) / 2, "CLOSING IN %d...", i);
+      nc_.render();
+      sleep(1);
+    }
+    gameover_ = true;
+    return;
   }
 
   board_ = std::make_unique<ncpp::Plane>(y_, x_, 0, 0);
