@@ -7,9 +7,9 @@
 #include <mutex>
 #include <ncpp/NotCurses.hh>
 #include <ncpp/Visual.hh>
+#include <random>
 #include <thread>
 #include <unordered_map>
-#include <random>
 
 extern std::mutex ncmtx;
 static std::condition_variable cv;
@@ -162,7 +162,6 @@ private:
 
   std::random_device rd_;
   std::mt19937 g_;
-
 
   std::vector<std::pair<int, int>> tile_positions_;
   std::vector<std::pair<std::pair<int, int>, RoadType>> road_positions_;

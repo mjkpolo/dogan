@@ -43,8 +43,19 @@ void Dogan::DrawToolbar() {
 void Dogan::DrawBoard() {
   constexpr int x_req = water_border_w + 22;
   constexpr int y_req = water_border_h + 10;
+  board_ = std::make_unique<ncpp::Plane>(y_, x_, 0, 0);
+  uint64_t channels = 0;
+
+  // TODO figure out what is actually needed
+  unsigned int base_rgb = 0x232136;
+  ncchannels_set_bg_rgb(&channels, base_rgb);
+  ncchannels_set_bg_alpha(&channels, NCALPHA_OPAQUE);
+  board_->set_base("", 0, channels);
+  board_->set_fg_alpha(NCALPHA_TRANSPARENT);
+  board_->set_bg_alpha(NCALPHA_OPAQUE);
+  board_->set_bg_rgb(base_rgb);
+
   if (x_ < x_req || y_ * 2 < y_req) {
-    board_ = std::make_unique<ncpp::Plane>(y_, x_, 0, 0);
     board_->putstr(y_ / 2, (x_ - 18) / 2, "TERMINAL TOO SMALL");
     board_->printf(y_ / 2 + 1, (x_ - 32) / 2, "NEED %d MORE ROWS, %d MORE COLS",
                    std::max(y_req - (int)y_ * 2, 0),
@@ -59,13 +70,12 @@ void Dogan::DrawBoard() {
     return;
   }
 
-  board_ = std::make_unique<ncpp::Plane>(y_, x_, 0, 0);
   DrawToolbar();
 
   DrawWaterBorder((y_ - water_border_h / 2) / 2, (x_ - water_border_w) / 2,
                   water_border_sprite);
 
-  uint64_t channels = 0;
+  channels = 0;
   board_->putstr(0, (x_ - strlen("DOGAN")) / 2, "DOGAN");
 
   std::vector<tile_type> random_tiles;
@@ -126,14 +136,16 @@ void Dogan::DrawBoard() {
     }
   }
 
+  // unsigned y, x;
   // for (const auto &[pos, rt] : road_positions_) {
   //   y = pos.first;
   //   x = pos.second;
-  //   DrawRoad(y, x, rt, PLAYER_BLUE);
+  //   DrawRoad(y, x, rt, PLAYER_RED);
   // }
 
   // for (const auto &[y, x] : building_positions_) {
-  //   DrawCity(y, x, PLAYER_BLUE);
+  //   // DrawSettlement(y, x, PLAYER_RED);
+  //   DrawCity(y, x, PLAYER_RED);
   // }
 
   nc_.render();
