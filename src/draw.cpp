@@ -25,19 +25,26 @@ void Dogan::DrawToolbar() {
   ncplane_set_styles(toolbar_->to_ncplane(), NCSTYLE_BOLD);
 
   toolbar_->set_fg_rgb(text_rgb);
-  toolbar_->putstr(0, 0, " Ctrl + ");
+  unsigned int offset = 0;
+  offset += toolbar_->putstr(0, 0, " Ctrl + ") + 1;
   toolbar_->set_fg_rgb(base_rgb);
+  toolbar_->set_bg_rgb(unselected_rgb);
 
-  if (mode_ == TOOLBAR_START)
+  if (mode_ == TOOLBAR_START) {
     toolbar_->set_bg_rgb(selected_rgb);
-  else
-    toolbar_->set_bg_rgb(unselected_rgb);
-  toolbar_->putstr(0, 8, " <s> START ");
-  if (mode_ == TOOLBAR_MOVE)
+  }
+  offset += toolbar_->putstr(0, offset, " <s> START ") + 1;
+  toolbar_->set_bg_rgb(unselected_rgb);
+
+  if (mode_ == TOOLBAR_MOVE) {
     toolbar_->set_bg_rgb(selected_rgb);
-  else
-    toolbar_->set_bg_rgb(unselected_rgb);
-  toolbar_->putstr(0, 20, " <m> MOVE ");
+  }
+  offset += toolbar_->putstr(0, offset, " <m> MOVE ") + 1;
+  toolbar_->set_bg_rgb(unselected_rgb);
+
+  if (mode_ == TOOLBAR_MOVE) {
+    offset += toolbar_->putstr(0, offset, " r ROLL ") + 1;
+  }
 }
 
 void Dogan::DrawBoard() {
@@ -379,7 +386,6 @@ void Dogan::DrawDice() {
     vopts.y = y_ / 2 - dice_length / 4;
     vopts.x = x_ / 2 - dice_length * 3 / 2;
     dice0_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
-    assert(tile.get() != nullptr);
   }
 
   switch (roll1) {
@@ -414,7 +420,6 @@ void Dogan::DrawDice() {
     vopts.y = y_ / 2 - dice_length / 4;
     vopts.x = x_ / 2 - dice_length / 2;
     dice1_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
-    assert(tile.get() != nullptr);
   }
 
   switch (roll2) {
@@ -449,6 +454,5 @@ void Dogan::DrawDice() {
     vopts.y = y_ / 2 - dice_length / 4;
     vopts.x = x_ / 2 + dice_length / 2;
     dice2_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
-    assert(tile.get() != nullptr);
   }
 }

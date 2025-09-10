@@ -79,6 +79,19 @@ public:
   }
 
   void set_mode(toolbar_mode mode) { mode_ = mode; }
+  void cleanup_mode() {
+    switch (mode_) {
+    case TOOLBAR_MOVE:
+      dice0_ = nullptr;
+      dice1_ = nullptr;
+      dice2_ = nullptr;
+      break;
+    case TOOLBAR_START:
+      break;
+    case TOOLBAR_NONE:
+      break;
+    }
+  }
   toolbar_mode get_mode() { return mode_; }
 
   static constexpr int water_border_w = 104;

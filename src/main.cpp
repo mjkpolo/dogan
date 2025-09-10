@@ -1,7 +1,7 @@
-#include <chrono>
 #define NCPP_EXCEPTIONS_PLEASE
 #include "dogan.hh"
 #include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <locale.h>
 #include <mutex>
@@ -27,6 +27,7 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
       toolbar_mode mode = d.get_mode();
       switch (input) {
       case 0x53:
+        d.cleanup_mode();
         if (mode == TOOLBAR_START) {
           d.set_mode(TOOLBAR_NONE);
         } else {
@@ -36,6 +37,7 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
         nc.render();
         break;
       case 0x4d:
+        d.cleanup_mode();
         if (mode == TOOLBAR_MOVE) {
           d.set_mode(TOOLBAR_NONE);
         } else {
