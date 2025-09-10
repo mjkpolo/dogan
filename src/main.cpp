@@ -1,3 +1,4 @@
+#include <chrono>
 #define NCPP_EXCEPTIONS_PLEASE
 #include "dogan.hh"
 #include <atomic>
@@ -50,9 +51,11 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
         case TOOLBAR_START:
           break;
         case TOOLBAR_MOVE:
-          stdplane->cursor_move(0, 0);
-          stdplane->printf("FINNA ROLL THIS BITCH U+%06x", input);
-          nc.render();
+          for (int i = 0; i < 10; i++) {
+            d.DrawDice();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            nc.render();
+          }
           break;
         default:
           break;

@@ -40,5 +40,9 @@
 #include "sprites/yellow_dice_4.hh"
 #include "sprites/yellow_dice_5.hh"
 #include "sprites/yellow_dice_6.hh"
+#include "sprites/boat.hh"
+#include "sprites/trade.hh"
+#include "sprites/politics.hh"
+#include "sprites/science.hh"
 
 #endif

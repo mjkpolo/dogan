@@ -1,5 +1,10 @@
 #include "dogan.hh"
 #include "notcurses/notcurses.h"
+#include "sprites/boat.hh"
+#include "sprites/politics.hh"
+#include "sprites/red_dice_1.hh"
+#include "sprites/science.hh"
+#include "sprites/trade.hh"
 #include <algorithm>
 #include <random>
 #include <unistd.h>
@@ -78,10 +83,8 @@ void Dogan::DrawBoard() {
     }
   }
 
-  std::random_device rd;
-  std::mt19937 g(rd());
-  std::shuffle(random_tiles.begin(), random_tiles.end(), g);
-  std::shuffle(random_numbers.begin(), random_numbers.end(), g);
+  std::shuffle(random_tiles.begin(), random_tiles.end(), g_);
+  std::shuffle(random_numbers.begin(), random_numbers.end(), g_);
 
   for (int i = 0; i < tile_positions_.size(); i++) {
     tile_type tt = random_tiles[i];
@@ -320,4 +323,120 @@ void Dogan::DrawRoad(int y, int x, RoadType rt, PlayerType pt) {
   vopts.x = x;
   auto road = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
   roads_.push_back(std::move(road));
+}
+
+void Dogan::DrawDice() {
+  std::uniform_int_distribution<unsigned int> dist(1, 6);
+
+  unsigned int roll0 = dist(g_);
+  unsigned int roll1 = dist(g_);
+  unsigned int roll2 = dist(g_);
+  assert(roll0 >= 1 && roll0 <= 6);
+  assert(roll1 >= 1 && roll1 <= 6);
+  assert(roll2 >= 1 && roll2 <= 6);
+
+  const uint32_t *sprite;
+  switch (roll0) {
+  case 1:
+    sprite = red_dice_1_sprite;
+    break;
+  case 2:
+    sprite = red_dice_2_sprite;
+    break;
+  case 3:
+    sprite = red_dice_3_sprite;
+    break;
+  case 4:
+    sprite = red_dice_4_sprite;
+    break;
+  case 5:
+    sprite = red_dice_5_sprite;
+    break;
+  case 6:
+    sprite = red_dice_6_sprite;
+    break;
+  }
+
+  {
+    std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)sprite, dice_length, dice_length * 4, dice_length);
+    ncvisual_options vopts = {};
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = board_->to_ncplane();
+    vopts.y = y_ / 2 - dice_length / 4;
+    vopts.x = x_ / 2 - dice_length * 3 / 2;
+    dice0_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    assert(tile.get() != nullptr);
+  }
+
+  switch (roll1) {
+  case 1:
+    sprite = yellow_dice_1_sprite;
+    break;
+  case 2:
+    sprite = yellow_dice_2_sprite;
+    break;
+  case 3:
+    sprite = yellow_dice_3_sprite;
+    break;
+  case 4:
+    sprite = yellow_dice_4_sprite;
+    break;
+  case 5:
+    sprite = yellow_dice_5_sprite;
+    break;
+  case 6:
+    sprite = yellow_dice_6_sprite;
+    break;
+  }
+
+  {
+    std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)sprite, dice_length, dice_length * 4, dice_length);
+
+    ncvisual_options vopts = {};
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = board_->to_ncplane();
+    vopts.y = y_ / 2 - dice_length / 4;
+    vopts.x = x_ / 2 - dice_length / 2;
+    dice1_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    assert(tile.get() != nullptr);
+  }
+
+  switch (roll2) {
+  case 1:
+    sprite = boat_sprite;
+    break;
+  case 2:
+    sprite = boat_sprite;
+    break;
+  case 3:
+    sprite = boat_sprite;
+    break;
+  case 4:
+    sprite = science_sprite;
+    break;
+  case 5:
+    sprite = trade_sprite;
+    break;
+  case 6:
+    sprite = politics_sprite;
+    break;
+  }
+
+  {
+    std::unique_ptr<ncpp::Visual> ncv = std::make_unique<ncpp::Visual>(
+        (const uint32_t *)sprite, dice_length, dice_length * 4, dice_length);
+
+    ncvisual_options vopts = {};
+    vopts.blitter = NCBLIT_2x1;
+    vopts.flags = NCVISUAL_OPTION_NODEGRADE | NCVISUAL_OPTION_CHILDPLANE;
+    vopts.n = board_->to_ncplane();
+    vopts.y = y_ / 2 - dice_length / 4;
+    vopts.x = x_ / 2 + dice_length / 2;
+    dice2_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
+    assert(tile.get() != nullptr);
+  }
 }

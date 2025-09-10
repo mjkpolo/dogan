@@ -9,6 +9,7 @@
 #include <ncpp/Visual.hh>
 #include <thread>
 #include <unordered_map>
+#include <random>
 
 extern std::mutex ncmtx;
 static std::condition_variable cv;
@@ -70,7 +71,8 @@ class Dogan {
 public:
   Dogan(ncpp::NotCurses &nc, std::atomic_bool &gameover)
       : nc_(nc), stdplane_(nc_.get_stdplane()), gameover_(gameover),
-        msdelay_(100), board_drawn(false), numbers_offset_(10), mode_(TOOLBAR_NONE) {
+        msdelay_(100), board_drawn(false), numbers_offset_(10),
+        mode_(TOOLBAR_NONE), g_(rd_()) {
     stdplane_->get_dim(&y_, &x_);
     InitPositions();
     DrawBoard();
@@ -82,6 +84,7 @@ public:
   static constexpr int water_border_w = 104;
   static constexpr int water_border_h = 68;
   static constexpr int tile_length = 16;
+  static constexpr int dice_length = 36;
   static constexpr int settle_w = 6;
   static constexpr int settle_h = 4;
   static constexpr int city_w = 8;
@@ -124,6 +127,8 @@ public:
 
   void DrawToolbar();
 
+  void DrawDice();
+
 private:
   void InitPositions();
 
@@ -155,6 +160,10 @@ private:
 
   toolbar_mode mode_;
 
+  std::random_device rd_;
+  std::mt19937 g_;
+
+
   std::vector<std::pair<int, int>> tile_positions_;
   std::vector<std::pair<std::pair<int, int>, RoadType>> road_positions_;
   std::vector<std::pair<int, int>> building_positions_;
@@ -169,6 +178,9 @@ private:
   std::vector<std::unique_ptr<ncpp::Plane>> settles_;
   std::vector<std::unique_ptr<ncpp::Plane>> cities_;
   std::vector<std::unique_ptr<ncpp::Plane>> roads_;
+  std::unique_ptr<ncpp::Plane> dice0_;
+  std::unique_ptr<ncpp::Plane> dice1_;
+  std::unique_ptr<ncpp::Plane> dice2_;
 
   unsigned int numbers_offset_;
 
