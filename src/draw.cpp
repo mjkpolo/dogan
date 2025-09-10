@@ -4,7 +4,7 @@
 #include <random>
 #include <unistd.h>
 
-void Dogan::DrawToolbar(toolbar_modes mode) {
+void Dogan::DrawToolbar() {
   toolbar_ = std::make_unique<ncpp::Plane>(1, x_, y_ - 1, 0);
   uint64_t channels = 0;
 
@@ -23,12 +23,12 @@ void Dogan::DrawToolbar(toolbar_modes mode) {
   toolbar_->putstr(0, 0, " Ctrl + ");
   toolbar_->set_fg_rgb(base_rgb);
 
-  if (mode == TOOLBAR_START)
+  if (mode_ == TOOLBAR_START)
     toolbar_->set_bg_rgb(selected_rgb);
   else
     toolbar_->set_bg_rgb(unselected_rgb);
   toolbar_->putstr(0, 8, " <s> START ");
-  if (mode == TOOLBAR_MOVE)
+  if (mode_ == TOOLBAR_MOVE)
     toolbar_->set_bg_rgb(selected_rgb);
   else
     toolbar_->set_bg_rgb(unselected_rgb);
@@ -55,7 +55,7 @@ void Dogan::DrawBoard() {
   }
 
   board_ = std::make_unique<ncpp::Plane>(y_, x_, 0, 0);
-  DrawToolbar(TOOLBAR_NONE);
+  DrawToolbar();
 
   DrawWaterBorder((y_ - water_border_h / 2) / 2, (x_ - water_border_w) / 2,
                   water_border_sprite);

@@ -24,7 +24,7 @@ enum tile_type {
   DESERT,
 };
 
-enum toolbar_modes {
+enum toolbar_mode {
   TOOLBAR_NONE,
   TOOLBAR_START,
   TOOLBAR_MOVE,
@@ -70,11 +70,14 @@ class Dogan {
 public:
   Dogan(ncpp::NotCurses &nc, std::atomic_bool &gameover)
       : nc_(nc), stdplane_(nc_.get_stdplane()), gameover_(gameover),
-        msdelay_(100), board_drawn(false), numbers_offset_(10) {
+        msdelay_(100), board_drawn(false), numbers_offset_(10), mode_(TOOLBAR_NONE) {
     stdplane_->get_dim(&y_, &x_);
     InitPositions();
     DrawBoard();
   }
+
+  void set_mode(toolbar_mode mode) { mode_ = mode; }
+  toolbar_mode get_mode() { return mode_; }
 
   static constexpr int water_border_w = 104;
   static constexpr int water_border_h = 68;
@@ -119,7 +122,7 @@ public:
     } while (!gameover_);
   }
 
-  void DrawToolbar(toolbar_modes mode);
+  void DrawToolbar();
 
 private:
   void InitPositions();
@@ -149,6 +152,8 @@ private:
 
   ncpp::NotCurses &nc_;
   std::mutex mtx_; // guards msdelay_
+
+  toolbar_mode mode_;
 
   std::vector<std::pair<int, int>> tile_positions_;
   std::vector<std::pair<std::pair<int, int>, RoadType>> road_positions_;

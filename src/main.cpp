@@ -23,19 +23,42 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
     }
     {
       std::lock_guard<std::mutex> l(ncmtx);
+      toolbar_mode mode = d.get_mode();
       switch (input) {
       case 0x53:
-        d.DrawToolbar(TOOLBAR_START);
+        if (mode == TOOLBAR_START) {
+          d.set_mode(TOOLBAR_NONE);
+        } else {
+          d.set_mode(TOOLBAR_START);
+        }
+        d.DrawToolbar();
         nc.render();
         break;
       case 0x4d:
-        d.DrawToolbar(TOOLBAR_MOVE);
+        if (mode == TOOLBAR_MOVE) {
+          d.set_mode(TOOLBAR_NONE);
+        } else {
+          d.set_mode(TOOLBAR_MOVE);
+        }
+        d.DrawToolbar();
         nc.render();
         break;
+      case 'r':
+        switch (mode) {
+        case TOOLBAR_NONE:
+          break;
+        case TOOLBAR_START:
+          break;
+        case TOOLBAR_MOVE:
+          stdplane->cursor_move(0, 0);
+          stdplane->printf("FINNA ROLL THIS BITCH U+%06x", input);
+          nc.render();
+          break;
+        default:
+          break;
+        }
+        break;
       default:
-        stdplane->cursor_move(0, 0);
-        stdplane->printf("Got unknown input U+%06x", input);
-        nc.render();
         break;
       }
     }
