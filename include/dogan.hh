@@ -31,6 +31,14 @@ enum toolbar_mode {
   TOOLBAR_MOVE,
 };
 
+enum class balance_level {
+    None,    // m = 1024
+    Low,     // m = 128
+    Medium,  // m = 32
+    High,    // m = 8
+    Extreme  // m = 1
+};
+
 const std::unordered_map<tile_type, int> tile_count = {
     {BRICK, 3}, {WOOD, 4}, {SHEEP, 4}, {WHEAT, 4}, {STONE, 3}, {DESERT, 1},
 };
@@ -140,7 +148,9 @@ public:
 
   void DrawToolbar();
 
-  void DrawDice();
+  void DrawDice(bool takeoff=false);
+  // int draw_from_bag(std::vector<int> &bag, unsigned int m, std::mt19937 &gen, bool takeoff);
+
 
 private:
   void InitPositions();
@@ -201,6 +211,9 @@ private:
   std::chrono::milliseconds msdelay_;
   unsigned y_, x_;
   volatile bool board_drawn;
+  static std::vector<int> bag_red;
+  static std::vector<int> bag_yellow;
+  static std::vector<int> bag_special;
 };
 
 #endif

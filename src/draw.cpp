@@ -2,12 +2,18 @@
 #include "notcurses/notcurses.h"
 #include "sprites/boat.hh"
 #include "sprites/politics.hh"
+#include <iostream>
 #include "sprites/red_dice_1.hh"
 #include "sprites/science.hh"
 #include "sprites/trade.hh"
 #include <algorithm>
 #include <random>
 #include <unistd.h>
+
+
+std::vector<int> Dogan::bag_red;
+std::vector<int> Dogan::bag_yellow;
+std::vector<int> Dogan::bag_special;
 
 void Dogan::DrawToolbar() {
   toolbar_ = std::make_unique<ncpp::Plane>(1, x_, y_ - 1, 0);
@@ -344,12 +350,44 @@ void Dogan::DrawRoad(int y, int x, RoadType rt, PlayerType pt) {
   roads_.push_back(std::move(road));
 }
 
-void Dogan::DrawDice() {
+int draw_from_bag(std::vector<int> &bag, balance_level bl, std::mt19937 &gen, bool takeoff) {
+    unsigned int m;
+    switch (bl) {
+        case balance_level::None:    m = 1024; break;
+        case balance_level::Low:     m = 128;  break;
+        case balance_level::Medium:  m = 32;   break;
+        case balance_level::High:    m = 8;    break;
+        case balance_level::Extreme: m = 1;    break;
+    }
+
+    if (bag.empty()) {
+      // std::cout << "BAG IS EMPTY" << std::endl;
+      for (int face = 1; face <= 6; ++face) {
+        for (unsigned int i = 0; i < m; ++i) {
+          bag.push_back(face);
+        }
+      }
+    }
+
+    std::uniform_int_distribution<size_t> dist(0, bag.size() - 1);
+    size_t idx = dist(gen);
+    int val = bag[idx];
+    if(takeoff){
+      bag.erase(bag.begin() + idx);
+      }
+    return val;
+}
+
+void Dogan::DrawDice(bool takeoff) {
   std::uniform_int_distribution<unsigned int> dist(1, 6);
 
-  unsigned int roll0 = dist(g_);
-  unsigned int roll1 = dist(g_);
-  unsigned int roll2 = dist(g_);
+  // unsigned int roll0 = dist(g_);
+  // unsigned int roll1 = dist(g_);
+  // unsigned int roll2 = dist(g_);
+  unsigned int roll0 = draw_from_bag(bag_red, balance_level::Extreme, g_, takeoff);
+  unsigned int roll1 = draw_from_bag(bag_yellow, balance_level::Extreme, g_, takeoff);
+  unsigned int roll2 = draw_from_bag(bag_special, balance_level::Extreme, g_, takeoff);
+
   assert(roll0 >= 1 && roll0 <= 6);
   assert(roll1 >= 1 && roll1 <= 6);
   assert(roll2 >= 1 && roll2 <= 6);
@@ -456,3 +494,4 @@ void Dogan::DrawDice() {
     dice2_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
   }
 }
+
