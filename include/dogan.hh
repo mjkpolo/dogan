@@ -10,6 +10,7 @@
 #include <random>
 #include <thread>
 #include <unordered_map>
+#include <atomic>
 
 extern std::mutex ncmtx;
 static std::condition_variable cv;
