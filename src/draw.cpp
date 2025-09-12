@@ -2,14 +2,13 @@
 #include "notcurses/notcurses.h"
 #include "sprites/boat.hh"
 #include "sprites/politics.hh"
-#include <iostream>
 #include "sprites/red_dice_1.hh"
 #include "sprites/science.hh"
 #include "sprites/trade.hh"
 #include <algorithm>
+#include <iostream>
 #include <random>
 #include <unistd.h>
-
 
 std::vector<int> Dogan::bag_red;
 std::vector<int> Dogan::bag_yellow;
@@ -53,6 +52,20 @@ void Dogan::DrawToolbar() {
   }
 }
 
+static std::unique_ptr<ncpp::Plane> draw_popup(ncpp::Plane *n, int rows,
+                                               int cols, int yoff, int xoff,
+                                               unsigned rgb) {
+  auto popup = std::make_unique<ncpp::Plane>(n, rows, cols, yoff, xoff);
+  uint64_t channels = 0;
+  ncchannels_set_fg_rgb(&channels, rgb);
+  ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
+  popup->double_box(0, channels, 5 - 1, 32 - 1, NCBOXMASK_TOP);
+  ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
+  popup->set_base("", 0, channels);
+
+  return popup;
+}
+
 void Dogan::DrawBoard() {
   constexpr int x_req = water_border_w + 22;
   constexpr int y_req = water_border_h + 10;
@@ -69,13 +82,15 @@ void Dogan::DrawBoard() {
   board_->set_bg_rgb(base_rgb);
 
   if (x_ < x_req || y_ * 2 < y_req) {
-    board_->putstr(y_ / 2, (x_ - 18) / 2, "TERMINAL TOO SMALL");
-    board_->printf(y_ / 2 + 1, (x_ - 32) / 2, "NEED %d MORE ROWS, %d MORE COLS",
-                   std::max(y_req - (int)y_ * 2, 0),
-                   std::max(x_req - (int)x_, 0));
+    auto popup = draw_popup(board_.get(), 5, 32, (int)y_ / 2,
+                            (int)(x_ - 33) / 2, 0xf6c177);
+    popup->putstr(0, 1, "TERMINAL TOO SMALL");
+    popup->printf(1, 1, "NEED %d MORE ROWS, %d MORE COLS",
+                  std::max(y_req - (int)y_ * 2, 0),
+                  std::max(x_req - (int)x_, 0));
 
     for (int i = 3; i > 0; i--) {
-      board_->printf(y_ / 2 + 3, (x_ - 16) / 2, "CLOSING IN %d...", i);
+      popup->printf(3, 1, "CLOSING IN %d...", i);
       nc_.render();
       sleep(1);
     }
@@ -350,32 +365,43 @@ void Dogan::DrawRoad(int y, int x, RoadType rt, PlayerType pt) {
   roads_.push_back(std::move(road));
 }
 
-int draw_from_bag(std::vector<int> &bag, balance_level bl, std::mt19937 &gen, bool takeoff) {
-    unsigned int m;
-    switch (bl) {
-        case balance_level::None:    m = 1024; break;
-        case balance_level::Low:     m = 128;  break;
-        case balance_level::Medium:  m = 32;   break;
-        case balance_level::High:    m = 8;    break;
-        case balance_level::Extreme: m = 1;    break;
-    }
+int draw_from_bag(std::vector<int> &bag, balance_level bl, std::mt19937 &gen,
+                  bool takeoff) {
+  unsigned int m;
+  switch (bl) {
+  case balance_level::None:
+    m = 1024;
+    break;
+  case balance_level::Low:
+    m = 128;
+    break;
+  case balance_level::Medium:
+    m = 32;
+    break;
+  case balance_level::High:
+    m = 8;
+    break;
+  case balance_level::Extreme:
+    m = 1;
+    break;
+  }
 
-    if (bag.empty()) {
-      // std::cout << "BAG IS EMPTY" << std::endl;
-      for (int face = 1; face <= 6; ++face) {
-        for (unsigned int i = 0; i < m; ++i) {
-          bag.push_back(face);
-        }
+  if (bag.empty()) {
+    // std::cout << "BAG IS EMPTY" << std::endl;
+    for (int face = 1; face <= 6; ++face) {
+      for (unsigned int i = 0; i < m; ++i) {
+        bag.push_back(face);
       }
     }
+  }
 
-    std::uniform_int_distribution<size_t> dist(0, bag.size() - 1);
-    size_t idx = dist(gen);
-    int val = bag[idx];
-    if(takeoff){
-      bag.erase(bag.begin() + idx);
-      }
-    return val;
+  std::uniform_int_distribution<size_t> dist(0, bag.size() - 1);
+  size_t idx = dist(gen);
+  int val = bag[idx];
+  if (takeoff) {
+    bag.erase(bag.begin() + idx);
+  }
+  return val;
 }
 
 void Dogan::DrawDice(bool takeoff) {
@@ -384,9 +410,12 @@ void Dogan::DrawDice(bool takeoff) {
   // unsigned int roll0 = dist(g_);
   // unsigned int roll1 = dist(g_);
   // unsigned int roll2 = dist(g_);
-  unsigned int roll0 = draw_from_bag(bag_red, balance_level::Extreme, g_, takeoff);
-  unsigned int roll1 = draw_from_bag(bag_yellow, balance_level::Extreme, g_, takeoff);
-  unsigned int roll2 = draw_from_bag(bag_special, balance_level::Extreme, g_, takeoff);
+  unsigned int roll0 =
+      draw_from_bag(bag_red, balance_level::Extreme, g_, takeoff);
+  unsigned int roll1 =
+      draw_from_bag(bag_yellow, balance_level::Extreme, g_, takeoff);
+  unsigned int roll2 =
+      draw_from_bag(bag_special, balance_level::Extreme, g_, takeoff);
 
   assert(roll0 >= 1 && roll0 <= 6);
   assert(roll1 >= 1 && roll1 <= 6);
@@ -494,4 +523,3 @@ void Dogan::DrawDice(bool takeoff) {
     dice2_ = std::make_unique<ncpp::Plane>(ncv->blit(&vopts));
   }
 }
-
