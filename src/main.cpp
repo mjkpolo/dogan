@@ -2,6 +2,7 @@
 #include "dogan.hh"
 #include <atomic>
 #include <chrono>
+#include <iostream>
 #include <cstdlib>
 #include <locale.h>
 #include <mutex>
@@ -54,7 +55,7 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
           break;
         case TOOLBAR_MOVE:
           for (int i = 0; i < 10; i++) {
-            d.DrawDice();
+            d.DrawDice(i==9);
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             nc.render();
           }
@@ -64,6 +65,13 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
         }
         break;
       default:
+        // std::cout << "input=0x" << std::hex << input
+        //     << " id=" << std::dec << ni.id
+        //     << " ctrl=" << ni.ctrl
+        //     << " alt=" << ni.alt
+        //     << " shift=" << ni.shift
+        //     << std::endl;
+
         break;
       }
     }
