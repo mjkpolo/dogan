@@ -35,5 +35,6 @@ target_include_directories(dogan
 target_link_libraries(dogan
   PRIVATE
     notcurses++
+    yaml-cpp
 )
 

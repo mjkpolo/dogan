@@ -32,7 +32,7 @@ enum toolbar_mode {
   TOOLBAR_MOVE,
 };
 
-enum class balance_level {
+enum BALANCE_LEVEL {
     None,    // m = 1024
     Low,     // m = 128
     Medium,  // m = 32
@@ -76,6 +76,13 @@ enum PlayerType {
   PLAYER_WHITE,
 };
 
+struct Player {
+  unsigned int id;
+  std::string name;
+  PlayerType type;
+};
+
+
 class Dogan {
 public:
   Dogan(ncpp::NotCurses &nc, std::atomic_bool &gameover)
@@ -87,6 +94,7 @@ public:
     DrawBoard();
   }
 
+  void load_config(const std::string& filename);
   void set_mode(toolbar_mode mode) { mode_ = mode; }
   void cleanup_mode() {
     switch (mode_) {
@@ -111,6 +119,9 @@ public:
   static constexpr int settle_h = 4;
   static constexpr int city_w = 8;
   static constexpr int city_h = 4;
+  static constexpr int player_num = 0;
+  static std::vector<Player> players;
+  BALANCE_LEVEL bl = BALANCE_LEVEL::Extreme;
 
   void Ticker() { // FIXME ideally this would be called from constructor :/
     std::chrono::milliseconds ms;

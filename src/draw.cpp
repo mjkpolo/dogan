@@ -365,23 +365,23 @@ void Dogan::DrawRoad(int y, int x, RoadType rt, PlayerType pt) {
   roads_.push_back(std::move(road));
 }
 
-int draw_from_bag(std::vector<int> &bag, balance_level bl, std::mt19937 &gen,
+int draw_from_bag(std::vector<int> &bag, BALANCE_LEVEL bl, std::mt19937 &gen,
                   bool takeoff) {
   unsigned int m;
   switch (bl) {
-  case balance_level::None:
+  case BALANCE_LEVEL::None:
     m = 1024;
     break;
-  case balance_level::Low:
+  case BALANCE_LEVEL::Low:
     m = 128;
     break;
-  case balance_level::Medium:
+  case BALANCE_LEVEL::Medium:
     m = 32;
     break;
-  case balance_level::High:
+  case BALANCE_LEVEL::High:
     m = 8;
     break;
-  case balance_level::Extreme:
+  case BALANCE_LEVEL::Extreme:
     m = 1;
     break;
   }
@@ -411,11 +411,11 @@ void Dogan::DrawDice(bool takeoff) {
   // unsigned int roll1 = dist(g_);
   // unsigned int roll2 = dist(g_);
   unsigned int roll0 =
-      draw_from_bag(bag_red, balance_level::Extreme, g_, takeoff);
+      draw_from_bag(bag_red, BALANCE_LEVEL::Extreme, g_, takeoff);
   unsigned int roll1 =
-      draw_from_bag(bag_yellow, balance_level::Extreme, g_, takeoff);
+      draw_from_bag(bag_yellow, BALANCE_LEVEL::Extreme, g_, takeoff);
   unsigned int roll2 =
-      draw_from_bag(bag_special, balance_level::Extreme, g_, takeoff);
+      draw_from_bag(bag_special, BALANCE_LEVEL::Extreme, g_, takeoff);
 
   assert(roll0 >= 1 && roll0 <= 6);
   assert(roll1 >= 1 && roll1 <= 6);

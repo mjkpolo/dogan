@@ -1,0 +1,11 @@
+players:
+  - name: Alice
+    color: red
+  - name: Bob
+    color: blue
+
+board:
+  hexes: 19
+  ports: 9
+
+balance_level: extreme
