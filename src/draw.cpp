@@ -6,6 +6,7 @@
 #include "sprites/science.hh"
 #include "sprites/trade.hh"
 #include <algorithm>
+#include <sstream>
 #include <iostream>
 #include <random>
 #include <unistd.h>
@@ -65,6 +66,49 @@ static std::unique_ptr<ncpp::Plane> draw_popup(ncpp::Plane *n, int rows,
 
   return popup;
 }
+
+void Dogan::DrawPopup(int showtime, const std::string& message) {
+  auto stdplane = nc_.get_stdplane();
+  int lines = std::count(message.begin(), message.end(), '\n') + 1;
+  std::istringstream iss_copy(message);
+  std::string tmp;
+  size_t maxlen = 0;
+  while (std::getline(iss_copy, tmp)) {
+      if (tmp.size() > maxlen) maxlen = tmp.size();
+  }
+
+  int rows = lines + 2;
+  int cols = (int)maxlen + 4;
+
+  int stdrows = stdplane->get_dim_y();
+  int stdcols = stdplane->get_dim_x();
+  int yoff = (stdrows - rows) / 6;
+  int xoff = (stdcols - cols) / 8;
+  auto popup = std::make_unique<ncpp::Plane>(stdplane, rows, cols, yoff, xoff);
+
+  uint64_t channels = 0;
+  ncchannels_set_fg_rgb(&channels, 0x00FF00);
+  ncchannels_set_bg_alpha(&channels, NCALPHA_TRANSPARENT);
+  popup->double_box(0, channels, rows - 1, cols - 1, NCBOXMASK_TOP);
+  ncchannels_set_fg_alpha(&channels, NCALPHA_TRANSPARENT);
+  popup->set_base("", 0, channels);
+
+  std::istringstream iss(message);
+  std::string line;
+  int y = 1;
+  while (std::getline(iss, line)) {
+      // if (y >= 4) break;
+      popup->putstr(y, 2, line.c_str());
+      y++;
+  }
+
+  nc_.render();
+  std::this_thread::sleep_for(std::chrono::milliseconds(showtime));
+
+  popup.reset();
+  nc_.render();
+}
+
 
 void Dogan::DrawBoard() {
   constexpr int x_req = water_border_w + 22;

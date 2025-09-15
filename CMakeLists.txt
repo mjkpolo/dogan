@@ -23,6 +23,7 @@ set(DOGAN_SRC
   src/main.cpp
   src/draw.cpp
   src/init.cpp
+  src/config_parser.cpp
 )
 
 add_executable(dogan ${DOGAN_SRC})

@@ -1,8 +1,12 @@
 players:
-  - name: Alice
+  - name: Marco
     color: red
-  - name: Bob
+  - name: Marcoo
     color: blue
+  - name: Marcooo
+    color: white
+  - name: Marcoooo
+    color: orange
 
 board:
   hexes: 19
