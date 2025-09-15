@@ -1,0 +1,15 @@
+players:
+  - name: Marco
+    color: red
+  - name: Marcoo
+    color: blue
+  - name: Marcooo
+    color: white
+  - name: Marcoooo
+    color: orange
+
+board:
+  hexes: 19
+  ports: 9
+
+balance_level: extreme

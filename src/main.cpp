@@ -1,5 +1,6 @@
 #define NCPP_EXCEPTIONS_PLEASE
 #include "dogan.hh"
+#include "config.hh"
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -79,7 +80,12 @@ bool IOLoop(ncpp::NotCurses &nc, Dogan &d, std::atomic_bool &gameover) {
   return gameover || input == 'q';
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <path_to_config_file.yaml>" << std::endl;
+        return 1;
+    }
+
   if (setlocale(LC_ALL, "") == nullptr) {
     return EXIT_FAILURE;
   }
@@ -91,7 +97,15 @@ int main() {
   ncopts.loglevel = NCLOGLEVEL_SILENT;
   ncpp::NotCurses nc(ncopts);
   {
+    GameConfig config;
+    config.load_config(argv[1]);
     Dogan d{nc, gameover};
+
+    auto cfgplane = nc.get_stdplane();
+    d.DrawPopup(2000, config.summary());
+    // std::cout << config.summary() << std::endl;
+    nc.render();
+    // config.summary();
     std::thread t_tid(&Dogan::Ticker, &d);
     std::thread r_tid(&Dogan::Renderer, &d);
     if (IOLoop(nc, d, gameover)) {

@@ -23,6 +23,7 @@ set(DOGAN_SRC
   src/main.cpp
   src/draw.cpp
   src/init.cpp
+  src/config_parser.cpp
 )
 
 add_executable(dogan ${DOGAN_SRC})
@@ -35,5 +36,6 @@ target_include_directories(dogan
 target_link_libraries(dogan
   PRIVATE
     notcurses++
+    yaml-cpp
 )
 

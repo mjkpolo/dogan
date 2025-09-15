@@ -2,6 +2,7 @@
 #define DOGAN_DOGAN
 
 #include "sprites.hh"
+#include "enums.hh"
 #include <cassert>
 #include <condition_variable>
 #include <mutex>
@@ -17,28 +18,6 @@ static std::condition_variable cv;
 static std::condition_variable cv_done;
 static volatile bool tick_ready = false;
 
-enum tile_type {
-  BRICK,
-  WOOD,
-  SHEEP,
-  WHEAT,
-  STONE,
-  DESERT,
-};
-
-enum toolbar_mode {
-  TOOLBAR_NONE,
-  TOOLBAR_START,
-  TOOLBAR_MOVE,
-};
-
-enum class balance_level {
-    None,    // m = 1024
-    Low,     // m = 128
-    Medium,  // m = 32
-    High,    // m = 8
-    Extreme  // m = 1
-};
 
 const std::unordered_map<tile_type, int> tile_count = {
     {BRICK, 3}, {WOOD, 4}, {SHEEP, 4}, {WHEAT, 4}, {STONE, 3}, {DESERT, 1},
@@ -62,19 +41,6 @@ const std::unordered_map<tile_type, const uint32_t *> tile_sprites = {
 const int total_tiles = tile_count.at(BRICK) + tile_count.at(WOOD) +
                         tile_count.at(SHEEP) + tile_count.at(WHEAT) +
                         tile_count.at(STONE) + tile_count.at(DESERT);
-
-enum RoadType {
-  ROAD_N_S,
-  ROAD_NE_SW,
-  ROAD_NW_SE,
-};
-
-enum PlayerType {
-  PLAYER_ORANGE,
-  PLAYER_RED,
-  PLAYER_BLUE,
-  PLAYER_WHITE,
-};
 
 class Dogan {
 public:
@@ -148,6 +114,8 @@ public:
   }
 
   void DrawToolbar();
+
+  void DrawPopup(int showtime, const std::string& message);
 
   void DrawDice(bool takeoff=false);
   // int draw_from_bag(std::vector<int> &bag, unsigned int m, std::mt19937 &gen, bool takeoff);
