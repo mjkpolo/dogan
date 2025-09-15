@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.21.0)
+cmake_minimum_required(VERSION 3.5)
+# cmake_minimum_required(VERSION 3.4)
 project(Dogan)
 
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -18,6 +19,7 @@ if(${USE_ASAN})
 endif()
 
 add_subdirectory(notcurses)
+add_subdirectory(yaml-cpp)
 
 set(DOGAN_SRC
   src/main.cpp

@@ -1,3 +1,6 @@
 [submodule "notcurses"]
 	path = notcurses
 	url = git@github.com:mjkpolo/notcurses.git
+[submodule "yaml-cpp"]
+	path = yaml-cpp
+	url = git@github.com:mjkpolo/yaml-cpp.git
